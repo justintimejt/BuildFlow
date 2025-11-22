@@ -35,17 +35,17 @@ export function ChatBar({ projectId, leftSidebarCollapsed = false }: ChatBarProp
 
   // Only initialize chat if projectId is available
   // Use dummy projectId to prevent hook errors, but disable functionality
-  const { messages, isLoading, isLoadingHistory, sendMessage } = useChatWithGemini(projectId || 'dummy');
+  const { messages, isLoading, sendMessage } = useChatWithGemini(projectId || 'dummy');
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   useEffect(() => {
-    if (isExpanded && !isLoadingHistory) {
+    if (isExpanded) {
       scrollToBottom();
     }
-  }, [messages, isExpanded, isLoadingHistory]);
+  }, [messages, isExpanded]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -104,7 +104,7 @@ export function ChatBar({ projectId, leftSidebarCollapsed = false }: ChatBarProp
       <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200 bg-gray-50">
         <div className="flex items-center gap-2">
           <FaComment className="text-blue-600" />
-          <span className="text-sm font-semibold text-gray-800">ArchCoach</span>
+          <span className="text-sm font-semibold text-gray-800">BOB Assistant</span>
         </div>
         <button
           onClick={() => setIsExpanded(!isExpanded)}
@@ -136,25 +136,14 @@ export function ChatBar({ projectId, leftSidebarCollapsed = false }: ChatBarProp
             </div>
           ) : (
             <>
-              {isLoadingHistory ? (
+              {messages.length === 0 && (
                 <div className="text-center text-gray-500 mt-8">
-                  <div className="flex items-center justify-center gap-2">
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
-                    <span className="text-sm text-gray-600 ml-2">Loading chat history...</span>
-                  </div>
+                  <p className="text-sm">Start chatting with BOB Assistant to modify your diagram.</p>
+                  <p className="text-xs mt-2 text-gray-400">Example: "Add a database node"</p>
                 </div>
-              ) : (
-                <>
-                  {messages.length === 0 && (
-                    <div className="text-center text-gray-500 mt-8">
-                      <p className="text-sm">Start chatting with ArchCoach to modify your diagram.</p>
-                      <p className="text-xs mt-2 text-gray-400">Example: "Add a database node"</p>
-                    </div>
-                  )}
+              )}
 
-                  {messages.map((message) => (
+              {messages.map((message) => (
                 <div
                   key={message.id}
                   className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
@@ -167,7 +156,7 @@ export function ChatBar({ projectId, leftSidebarCollapsed = false }: ChatBarProp
                     }`}
                   >
                     <div className="text-xs font-medium mb-1 opacity-75">
-                      {message.role === 'user' ? 'You' : 'ArchCoach'}
+                      {message.role === 'user' ? 'You' : 'BOB Assistant'}
                     </div>
                     <div className="text-sm break-words whitespace-pre-wrap">
                       {message.content}
@@ -176,22 +165,20 @@ export function ChatBar({ projectId, leftSidebarCollapsed = false }: ChatBarProp
                 </div>
               ))}
 
-                  {isLoading && (
-                    <div className="flex justify-start">
-                      <div className="bg-gray-100 rounded-lg px-3 py-2">
-                        <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
-                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
-                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
-                          <span className="text-xs text-gray-600 ml-2">Thinking...</span>
-                        </div>
-                      </div>
+              {isLoading && (
+                <div className="flex justify-start">
+                  <div className="bg-gray-100 rounded-lg px-3 py-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                      <span className="text-xs text-gray-600 ml-2">Thinking...</span>
                     </div>
-                  )}
-
-                  <div ref={messagesEndRef} />
-                </>
+                  </div>
+                </div>
               )}
+
+              <div ref={messagesEndRef} />
             </>
           )}
         </div>
@@ -214,7 +201,7 @@ export function ChatBar({ projectId, leftSidebarCollapsed = false }: ChatBarProp
               isDisabled
                 ? "Configure Supabase to enable chat..."
                 : isExpanded
-                ? "Ask ArchCoach to modify your diagram..."
+                ? "Ask BOB Assistant to modify your diagram..."
                 : "Type a message..."
             }
             disabled={isLoading || isDisabled}
