@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useProjectContext } from '../../contexts/ProjectContext';
 import { getNodeTypeConfig } from '../../nodes/nodeTypes';
+import { FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 
 interface InspectorPanelProps {
   selectedNodeId: string | null;
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
-export function InspectorPanel({ selectedNodeId }: InspectorPanelProps) {
+export function InspectorPanel({ selectedNodeId, isCollapsed = false, onToggleCollapse }: InspectorPanelProps) {
   const { nodes, updateNode, deleteNode } = useProjectContext();
   const selectedNode = nodes.find(n => n.id === selectedNodeId);
   const nodeType = selectedNode ? getNodeTypeConfig(selectedNode.type) : null;
@@ -14,6 +17,11 @@ export function InspectorPanel({ selectedNodeId }: InspectorPanelProps) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [attributes, setAttributes] = useState<Record<string, string | number>>({});
+  const [internalCollapsed, setInternalCollapsed] = useState(false);
+  
+  // Use prop if provided, otherwise use internal state
+  const collapsed = onToggleCollapse !== undefined ? isCollapsed : internalCollapsed;
+  const toggleCollapse = onToggleCollapse || (() => setInternalCollapsed(!internalCollapsed));
 
   useEffect(() => {
     if (selectedNode) {
@@ -23,9 +31,30 @@ export function InspectorPanel({ selectedNodeId }: InspectorPanelProps) {
     }
   }, [selectedNode]);
 
+  if (collapsed) {
+    return (
+      <div className="h-full bg-gray-50 border-l border-gray-200 relative">
+        <button
+          onClick={toggleCollapse}
+          className="absolute top-4 left-0 -translate-x-1/2 z-10 bg-white border border-gray-200 rounded-full p-2 shadow-md hover:bg-gray-100 transition-colors"
+          aria-label="Expand sidebar"
+        >
+          <FaChevronLeft className="w-3 h-3 text-gray-600" />
+        </button>
+      </div>
+    );
+  }
+
   if (!selectedNode || !nodeType) {
     return (
-      <div className="h-full bg-gray-50 border-l border-gray-200 p-4 flex items-center justify-center">
+      <div className="h-full bg-gray-50 border-l border-gray-200 p-4 flex items-center justify-center relative">
+        <button
+          onClick={toggleCollapse}
+          className="absolute top-4 left-4 p-1 hover:bg-gray-200 rounded transition-colors"
+          aria-label="Collapse sidebar"
+        >
+          <FaChevronRight className="w-4 h-4 text-gray-600" />
+        </button>
         <p className="text-gray-500 text-sm">Select a node to edit its properties</p>
       </div>
     );
@@ -71,13 +100,22 @@ export function InspectorPanel({ selectedNodeId }: InspectorPanelProps) {
   const colorValue = getColorValue(nodeType.color);
 
   return (
-    <div className="h-full bg-gray-50 border-l border-gray-200 p-4 overflow-y-auto">
+    <div className="h-full bg-gray-50 border-l border-gray-200 p-4 overflow-y-auto relative">
       <div className="mb-4">
-        <div className="flex items-center gap-2 mb-2">
-          <div style={{ color: colorValue, fontSize: '1.25rem', display: 'inline-flex' }}>
-            <Icon />
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <div style={{ color: colorValue, fontSize: '1.25rem', display: 'inline-flex' }}>
+              <Icon />
+            </div>
+            <h2 className="text-lg font-semibold text-gray-800">Node Properties</h2>
           </div>
-          <h2 className="text-lg font-semibold text-gray-800">Node Properties</h2>
+          <button
+            onClick={toggleCollapse}
+            className="p-1 hover:bg-gray-200 rounded transition-colors"
+            aria-label="Collapse sidebar"
+          >
+            <FaChevronRight className="w-4 h-4 text-gray-600" />
+          </button>
         </div>
       </div>
 

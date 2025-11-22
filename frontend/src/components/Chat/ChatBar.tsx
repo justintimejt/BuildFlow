@@ -4,12 +4,20 @@ import { FaChevronUp, FaChevronDown, FaPaperPlane, FaComment } from 'react-icons
 
 interface ChatBarProps {
   projectId: string | null;
+  leftSidebarCollapsed?: boolean;
+  rightSidebarCollapsed?: boolean;
 }
 
-export function ChatBar({ projectId }: ChatBarProps) {
+export function ChatBar({ projectId, leftSidebarCollapsed = false, rightSidebarCollapsed = false }: ChatBarProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Calculate left and right margins based on sidebar states
+  // Left sidebar: 256px (w-64) when expanded, 0 when collapsed
+  // Right sidebar: 320px (w-80) when expanded, 0 when collapsed
+  const leftMargin = leftSidebarCollapsed ? '0px' : '256px';
+  const rightMargin = rightSidebarCollapsed ? '0px' : '320px';
 
   // Only initialize chat if projectId is available
   // Use dummy projectId to prevent hook errors, but disable functionality
@@ -52,11 +60,15 @@ export function ChatBar({ projectId }: ChatBarProps) {
   return (
     <div
       className={`
-        fixed bottom-0 left-0 right-0 z-40
+        fixed bottom-0 z-40
         bg-white border-t border-gray-300 shadow-lg
         transition-all duration-300 ease-in-out
         ${isExpanded ? 'h-[300px]' : 'h-[60px]'}
       `}
+      style={{
+        left: leftMargin,
+        right: rightMargin,
+      }}
     >
       {/* Header Bar */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200 bg-gray-50">
