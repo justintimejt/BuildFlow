@@ -65,7 +65,13 @@ export const useProject = () => {
         id: uuidv4(),
         source,
         target,
-        type: 'smoothstep'
+        type: 'bezier',
+        animated: true,
+        style: {
+          strokeDasharray: '8,4',
+          stroke: '#6366f1',
+          strokeWidth: 2,
+        },
       };
       return [...prev, newEdge];
     });
@@ -115,55 +121,129 @@ export const useProject = () => {
     | { op: "add_edge"; payload: { source: string; target: string; type?: string; id?: string; data?: { label?: string } } }
     | { op: "delete_edge"; payload: { id: string } };
 
+  // Helper function to calculate topological levels for hierarchical layout
+  const calculateNodeLevels = useCallback((nodes: Node[], edges: Edge[]): Map<string, number> => {
+    const levels = new Map<string, number>();
+    
+    // Initialize all nodes to level -1 (unassigned)
+    nodes.forEach(node => levels.set(node.id, -1));
+    
+    // Find nodes with no incoming edges (level 0)
+    const nodesWithIncoming = new Set(edges.map(e => e.target));
+    nodes.forEach(node => {
+      if (!nodesWithIncoming.has(node.id)) {
+        levels.set(node.id, 0);
+      }
+    });
+    
+    // If no nodes are level 0, assign all to level 0
+    if (Array.from(levels.values()).every(level => level !== 0)) {
+      nodes.forEach(node => levels.set(node.id, 0));
+    }
+    
+    // Calculate levels iteratively
+    let changed = true;
+    while (changed) {
+      changed = false;
+      edges.forEach(edge => {
+        const sourceLevel = levels.get(edge.source) ?? -1;
+        const targetLevel = levels.get(edge.target) ?? -1;
+        if (sourceLevel >= 0 && targetLevel < sourceLevel + 1) {
+          levels.set(edge.target, sourceLevel + 1);
+          changed = true;
+        }
+      });
+    }
+    
+    // Assign remaining unassigned nodes to max level + 1
+    const maxLevel = Math.max(...Array.from(levels.values()));
+    nodes.forEach(node => {
+      if (levels.get(node.id) === -1) {
+        levels.set(node.id, maxLevel + 1);
+      }
+    });
+    
+    return levels;
+  }, []);
+
   const applyOperations = useCallback((ops: DiagramOperation[]) => {
+    // First pass: add all nodes and edges
+    const nodesWithoutPositions: string[] = [];
+    
     for (const op of ops) {
       switch (op.op) {
         case "add_node":
-          // Extract position from metadata if not in payload, or use default
-          let position: { x: number; y: number };
+          // Extract position from metadata if not in payload
+          let position: { x: number; y: number } | null = null;
           if (op.payload.position) {
             position = op.payload.position;
           } else if (op.metadata && typeof op.metadata.x === 'number' && typeof op.metadata.y === 'number') {
             position = { x: op.metadata.x, y: op.metadata.y };
-          } else {
-            // Default position if none provided
-            position = { x: Math.random() * 400, y: Math.random() * 400 };
           }
           
-          // Extract type - could be in payload.type or payload.data.type
+          // Extract type, name, and ID
           const nodeType = op.payload.type || (op.payload.data as any)?.type || 'default';
-          
-          // Extract name - could be in payload.name or payload.data.name
           const nodeName = op.payload.name || op.payload.data?.name || getDefaultNodeName(nodeType);
-          
-          // Use provided ID or generate new one
           const nodeId = op.payload.id || uuidv4();
           
-          const newNode: Node = {
-            id: nodeId,
-            type: nodeType,
-            position,
-            data: {
-              name: nodeName,
-              description: op.payload.data?.description || '',
-              attributes: op.payload.data?.attributes || {},
-              ...op.payload.data
-            }
-          };
-          // Ensure newNode has valid position before adding
-          if (!newNode.position || typeof newNode.position.x !== 'number' || typeof newNode.position.y !== 'number') {
-            newNode.position = { x: Math.random() * 400, y: Math.random() * 400 };
-          }
-          setNodes(prev => {
-            // Also validate existing nodes to prevent errors
-            const validatedPrev = prev.map(node => {
-              if (!node.position || typeof node.position.x !== 'number' || typeof node.position.y !== 'number') {
-                return { ...node, position: { x: Math.random() * 400, y: Math.random() * 400 } };
-              }
-              return node;
+          // If position wasn't provided, add node with temporary position, then we'll layout later
+          if (!position) {
+            nodesWithoutPositions.push(nodeId);
+            setNodes(prev => {
+              const currentMaxY = prev.length > 0 ? Math.max(...prev.map(n => n.position.y)) : 0;
+              const startY = currentMaxY === 0 ? 100 : currentMaxY + 200;
+              
+              const newNode: Node = {
+                id: nodeId,
+                type: nodeType,
+                position: { x: 400, y: startY }, // Temporary position
+                data: {
+                  name: nodeName,
+                  description: op.payload.data?.description || '',
+                  attributes: op.payload.data?.attributes || {},
+                  ...op.payload.data
+                }
+              };
+              
+              const validatedPrev = prev.map(node => {
+                if (!node.position || typeof node.position.x !== 'number' || typeof node.position.y !== 'number') {
+                  return { ...node, position: { x: 400, y: 100 } };
+                }
+                return node;
+              });
+              
+              return [...validatedPrev, newNode];
             });
-            return [...validatedPrev, newNode];
-          });
+          } else {
+            // Position was provided, use it
+            const newNode: Node = {
+              id: nodeId,
+              type: nodeType,
+              position,
+              data: {
+                name: nodeName,
+                description: op.payload.data?.description || '',
+                attributes: op.payload.data?.attributes || {},
+                ...op.payload.data
+              }
+            };
+            
+            // Ensure newNode has valid position before adding
+            if (!newNode.position || typeof newNode.position.x !== 'number' || typeof newNode.position.y !== 'number') {
+              newNode.position = { x: 400, y: 100 };
+            }
+            
+            setNodes(prev => {
+              // Also validate existing nodes to prevent errors
+              const validatedPrev = prev.map(node => {
+                if (!node.position || typeof node.position.x !== 'number' || typeof node.position.y !== 'number') {
+                  return { ...node, position: { x: 400, y: 100 } };
+                }
+                return node;
+              });
+              return [...validatedPrev, newNode];
+            });
+          }
           break;
         case "update_node":
           setNodes(prev =>
@@ -192,8 +272,14 @@ export const useProject = () => {
               id: op.payload.id || uuidv4(),
               source: op.payload.source,
               target: op.payload.target,
-              type: op.payload.type || 'smoothstep',
-              label: op.payload.data?.label
+              type: 'bezier', // Use bezier curves for smooth, flexible, curvy lines
+              label: op.payload.data?.label,
+              animated: true,
+              style: {
+                strokeDasharray: '8,4',
+                stroke: '#6366f1',
+                strokeWidth: 2,
+              },
             };
             return [...prev, newEdge];
           });
@@ -203,7 +289,63 @@ export const useProject = () => {
           break;
       }
     }
-  }, [selectedNodeId]);
+    
+    // After all operations, do hierarchical layout for nodes without positions
+    if (nodesWithoutPositions.length > 0) {
+      // Use setTimeout to ensure all state updates are complete, then do layout
+      setTimeout(() => {
+        setEdges(currentEdges => {
+          setNodes(currentNodes => {
+            // Calculate levels for all nodes
+            const levels = calculateNodeLevels(currentNodes, currentEdges);
+            
+            // Group nodes by level
+            const nodesByLevel = new Map<number, Node[]>();
+            currentNodes.forEach(node => {
+              const level = levels.get(node.id) ?? 0;
+              if (!nodesByLevel.has(level)) {
+                nodesByLevel.set(level, []);
+              }
+              nodesByLevel.get(level)!.push(node);
+            });
+            
+            // Calculate positions for each level
+            const horizontalSpacing = 200;
+            const verticalSpacing = 200;
+            const startY = 100;
+            
+            const repositionedNodes = currentNodes.map(node => {
+              // Only reposition nodes that were added without positions
+              if (!nodesWithoutPositions.includes(node.id)) {
+                return node;
+              }
+              
+              const level = levels.get(node.id) ?? 0;
+              const nodesAtLevel = nodesByLevel.get(level) ?? [];
+              const indexInLevel = nodesAtLevel.findIndex(n => n.id === node.id);
+              
+              // Calculate horizontal position (center nodes at same level)
+              const totalWidth = (nodesAtLevel.length - 1) * horizontalSpacing;
+              const startX = 400 - totalWidth / 2;
+              const x = startX + (indexInLevel * horizontalSpacing);
+              
+              // Calculate vertical position based on level
+              const y = startY + (level * verticalSpacing);
+              
+              return {
+                ...node,
+                position: { x, y }
+              };
+            });
+            
+            return repositionedNodes;
+          });
+          
+          return currentEdges; // Return edges unchanged
+        });
+      }, 0);
+    }
+  }, [selectedNodeId, calculateNodeLevels]);
 
   return {
     nodes,
