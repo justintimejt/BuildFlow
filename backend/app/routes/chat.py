@@ -6,6 +6,8 @@ from ..env import Env
 import google.generativeai as genai
 import traceback
 import uuid
+import json
+import re
 from postgrest.exceptions import APIError
 
 # Configure Gemini API - handle errors gracefully
@@ -410,8 +412,14 @@ IMPORTANT:
             reply_text = (response.text or "").strip()
             
             # Clean up response: remove markdown code blocks if present
-            if reply_text.startswith('```'):
-                # Find the first newline after ```
+            # Handle various formats: ```json, ```, text before/after code blocks
+            # Try to find JSON in markdown code blocks (```json ... ``` or ``` ... ```)
+            code_block_pattern = r'```(?:json)?\s*\n?(.*?)```'
+            code_block_match = re.search(code_block_pattern, reply_text, re.DOTALL)
+            if code_block_match:
+                reply_text = code_block_match.group(1).strip()
+            elif reply_text.startswith('```'):
+                # Fallback: simple code block removal
                 first_newline = reply_text.find('\n')
                 if first_newline != -1:
                     reply_text = reply_text[first_newline + 1:]
@@ -422,6 +430,17 @@ IMPORTANT:
                 if last_backticks != -1:
                     reply_text = reply_text[:last_backticks]
                 reply_text = reply_text.strip()
+            
+            # Try to extract JSON object if there's text before/after
+            # Look for first { and last } to extract JSON object
+            first_brace = reply_text.find('{')
+            last_brace = reply_text.rfind('}')
+            if first_brace != -1 and last_brace != -1 and last_brace > first_brace:
+                # Extract just the JSON object
+                potential_json = reply_text[first_brace:last_brace + 1]
+                # Only use it if it looks like valid JSON structure
+                if potential_json.count('{') == potential_json.count('}'):
+                    reply_text = potential_json
         except Exception as e:
             error_msg = str(e)
             print(f"Error calling Gemini API: {e}")
@@ -446,7 +465,6 @@ IMPORTANT:
             raise HTTPException(status_code=500, detail="Empty response from Gemini")
 
         # Parse the response JSON
-        import json
         try:
             response_data = json.loads(reply_text)
             
@@ -459,19 +477,51 @@ IMPORTANT:
                 operations = []
             
         except json.JSONDecodeError as e:
-            print(f"Warning: Failed to parse AI response as JSON: {e}")
-            print(f"Raw response: {reply_text}")
-            # Fallback: treat as old format (just operations array)
-            try:
-                operations = json.loads(reply_text)
-                if isinstance(operations, list):
-                    assistant_message = "I've updated your diagram."
-                else:
+            print(f"⚠️  Warning: Failed to parse AI response as JSON: {e}")
+            print(f"📝 Raw response (first 500 chars): {reply_text[:500]}")
+            print(f"📝 Raw response length: {len(reply_text)} chars")
+            
+            # Initialize fallback values
+            operations = []
+            assistant_message = None
+            
+            # Try to extract JSON from the response more aggressively
+            json_pattern = r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}'
+            json_matches = re.findall(json_pattern, reply_text, re.DOTALL)
+            
+            if json_matches:
+                # Try the largest match first (likely the main JSON object)
+                json_matches.sort(key=len, reverse=True)
+                for json_candidate in json_matches:
+                    try:
+                        response_data = json.loads(json_candidate)
+                        if "message" in response_data or "operations" in response_data:
+                            assistant_message = response_data.get("message", "I've processed your request.")
+                            operations = response_data.get("operations", [])
+                            if not isinstance(operations, list):
+                                operations = []
+                            print(f"✅ Successfully extracted JSON from response")
+                            break
+                    except json.JSONDecodeError:
+                        continue
+            
+            # If we still don't have a message, try fallback parsing
+            if assistant_message is None:
+                # Fallback: treat as old format (just operations array)
+                try:
+                    parsed = json.loads(reply_text)
+                    if isinstance(parsed, list):
+                        operations = parsed
+                        assistant_message = "I've updated your diagram."
+                    else:
+                        operations = []
+                        assistant_message = "I received your message, but couldn't parse the response format."
+                except json.JSONDecodeError:
                     operations = []
-                    assistant_message = "I received your message, but couldn't parse the response format."
-            except:
-                operations = []
-                assistant_message = "I received your message, but encountered an error processing it."
+                    error_preview = str(e)[:100] if len(str(e)) > 100 else str(e)
+                    assistant_message = f"I received your message, but encountered an error processing it. The AI response couldn't be parsed as JSON. Please try rephrasing your request. (Error: {error_preview})"
+                    print(f"❌ All JSON parsing attempts failed. Full error: {e}")
+                    print(f"📄 Full response: {reply_text}")
 
         # 5) Store messages (user + assistant) for history
         try:
