@@ -14,7 +14,6 @@ function AppContent() {
   const { selectedNodeId, setSelectedNodeId } = useProjectContext();
   const { projectId, loading } = useProjectId('Untitled Project');
   const [leftSidebarCollapsed, setLeftSidebarCollapsed] = useState(false);
-  const [rightSidebarCollapsed, setRightSidebarCollapsed] = useState(false);
   
   // Load project from Supabase when projectId is available
   useLoadProjectFromSupabase(projectId || null);
@@ -49,19 +48,13 @@ function AppContent() {
             onNodeSelect={setSelectedNodeId}
             selectedNodeId={selectedNodeId}
           />
-        </div>
-        <div className={`${rightSidebarCollapsed ? 'w-0' : 'w-80'} flex-shrink-0 transition-all duration-300 ease-in-out ${rightSidebarCollapsed ? 'overflow-visible' : 'overflow-hidden'}`}>
-          <InspectorPanel 
-            selectedNodeId={selectedNodeId}
-            isCollapsed={rightSidebarCollapsed}
-            onToggleCollapse={() => setRightSidebarCollapsed(!rightSidebarCollapsed)}
-          />
+          {/* Node Properties as floating overlay */}
+          <InspectorPanel selectedNodeId={selectedNodeId} />
         </div>
         {/* Chat Bar at bottom - shows always, but disabled if no projectId */}
         <ChatBar 
           projectId={projectId}
           leftSidebarCollapsed={leftSidebarCollapsed}
-          rightSidebarCollapsed={rightSidebarCollapsed}
         />
       </div>
     </div>

@@ -5,19 +5,33 @@ import { FaChevronUp, FaChevronDown, FaPaperPlane, FaComment } from 'react-icons
 interface ChatBarProps {
   projectId: string | null;
   leftSidebarCollapsed?: boolean;
-  rightSidebarCollapsed?: boolean;
 }
 
-export function ChatBar({ projectId, leftSidebarCollapsed = false, rightSidebarCollapsed = false }: ChatBarProps) {
+export function ChatBar({ projectId, leftSidebarCollapsed = false }: ChatBarProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1920);
 
-  // Calculate left and right margins based on sidebar states
+  // Calculate left margin based on sidebar state
   // Left sidebar: 256px (w-64) when expanded, 0 when collapsed
-  // Right sidebar: 320px (w-80) when expanded, 0 when collapsed
-  const leftMargin = leftSidebarCollapsed ? '0px' : '256px';
-  const rightMargin = rightSidebarCollapsed ? '0px' : '320px';
+  const leftSidebarWidth = leftSidebarCollapsed ? 0 : 256;
+  
+  // ReactFlow controls positioning
+  // MiniMap: ~200px wide, positioned bottom-right
+  // Zoom Controls: ~50px wide, positioned above minimap
+  // Total space needed on right: ~260px
+  const rightControlsWidth = 260;
+
+  // Handle window resize to keep chat bar centered
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth);
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Only initialize chat if projectId is available
   // Use dummy projectId to prevent hook errors, but disable functionality
@@ -57,6 +71,22 @@ export function ChatBar({ projectId, leftSidebarCollapsed = false, rightSidebarC
   // Show chat bar always, but disable if no projectId
   const isDisabled = !projectId;
 
+  // Calculate chat bar width and position, shifted to the right
+  const availableWidth = windowWidth;
+  const minSpacing = 20; // Minimum spacing on each side
+  const minChatBarWidth = 400; // Minimum chat bar width
+  const rightShift = 100; // Shift chat bar to the right by this amount
+  
+  // Calculate total available space (excluding sidebars and controls)
+  const totalAvailableSpace = availableWidth - leftSidebarWidth - rightControlsWidth;
+  
+  // Position chat bar shifted to the right
+  // Increase left spacing to shift it right, maintain minimum right spacing
+  const leftSpacing = minSpacing + rightShift;
+  const rightSpacing = minSpacing;
+  const chatBarWidth = Math.max(minChatBarWidth, totalAvailableSpace - leftSpacing - rightSpacing);
+  const chatBarLeft = leftSidebarWidth + leftSpacing;
+  
   return (
     <div
       className={`
@@ -66,8 +96,8 @@ export function ChatBar({ projectId, leftSidebarCollapsed = false, rightSidebarC
         ${isExpanded ? 'h-[300px]' : 'h-[60px]'}
       `}
       style={{
-        left: leftMargin,
-        right: rightMargin,
+        left: `${chatBarLeft}px`,
+        width: `${chatBarWidth}px`,
       }}
     >
       {/* Header Bar */}

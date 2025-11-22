@@ -5,11 +5,9 @@ import { FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 
 interface InspectorPanelProps {
   selectedNodeId: string | null;
-  isCollapsed?: boolean;
-  onToggleCollapse?: () => void;
 }
 
-export function InspectorPanel({ selectedNodeId, isCollapsed = false, onToggleCollapse }: InspectorPanelProps) {
+export function InspectorPanel({ selectedNodeId }: InspectorPanelProps) {
   const { nodes, updateNode, deleteNode } = useProjectContext();
   const selectedNode = nodes.find(n => n.id === selectedNodeId);
   const nodeType = selectedNode ? getNodeTypeConfig(selectedNode.type) : null;
@@ -17,11 +15,9 @@ export function InspectorPanel({ selectedNodeId, isCollapsed = false, onToggleCo
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [attributes, setAttributes] = useState<Record<string, string | number>>({});
-  const [internalCollapsed, setInternalCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   
-  // Use prop if provided, otherwise use internal state
-  const collapsed = onToggleCollapse !== undefined ? isCollapsed : internalCollapsed;
-  const toggleCollapse = onToggleCollapse || (() => setInternalCollapsed(!internalCollapsed));
+  const toggleCollapse = () => setIsCollapsed(!isCollapsed);
 
   useEffect(() => {
     if (selectedNode) {
@@ -31,31 +27,20 @@ export function InspectorPanel({ selectedNodeId, isCollapsed = false, onToggleCo
     }
   }, [selectedNode]);
 
-  if (collapsed) {
+  if (!selectedNode || !nodeType) {
+    return null;
+  }
+
+  if (isCollapsed) {
     return (
-      <div className="h-full bg-gray-50 border-l border-gray-200 relative">
+      <div className="fixed top-20 right-4 z-50">
         <button
           onClick={toggleCollapse}
-          className="absolute top-4 left-0 -translate-x-1/2 z-10 bg-white border border-gray-200 rounded-full p-2 shadow-md hover:bg-gray-100 transition-colors"
-          aria-label="Expand sidebar"
+          className="bg-white border border-gray-200 rounded-full p-2 shadow-lg hover:bg-gray-100 transition-colors"
+          aria-label="Expand node properties"
         >
           <FaChevronLeft className="w-3 h-3 text-gray-600" />
         </button>
-      </div>
-    );
-  }
-
-  if (!selectedNode || !nodeType) {
-    return (
-      <div className="h-full bg-gray-50 border-l border-gray-200 p-4 flex items-center justify-center relative">
-        <button
-          onClick={toggleCollapse}
-          className="absolute top-4 left-4 p-1 hover:bg-gray-200 rounded transition-colors"
-          aria-label="Collapse sidebar"
-        >
-          <FaChevronRight className="w-4 h-4 text-gray-600" />
-        </button>
-        <p className="text-gray-500 text-sm">Select a node to edit its properties</p>
       </div>
     );
   }
@@ -100,79 +85,79 @@ export function InspectorPanel({ selectedNodeId, isCollapsed = false, onToggleCo
   const colorValue = getColorValue(nodeType.color);
 
   return (
-    <div className="h-full bg-gray-50 border-l border-gray-200 p-4 overflow-y-auto relative">
-      <div className="mb-4">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2">
-            <div style={{ color: colorValue, fontSize: '1.25rem', display: 'inline-flex' }}>
+    <div className="fixed top-20 right-4 z-50 w-80 bg-white border border-gray-200 rounded-lg shadow-xl p-2 overflow-y-auto max-h-[calc(100vh-120px)]">
+      <div className="mb-2">
+        <div className="flex items-center justify-between mb-1">
+          <div className="flex items-center gap-1.5">
+            <div style={{ color: colorValue, fontSize: '1rem', display: 'inline-flex' }}>
               <Icon />
             </div>
-            <h2 className="text-lg font-semibold text-gray-800">Node Properties</h2>
+            <h2 className="text-sm font-semibold text-gray-800">Node Properties</h2>
           </div>
           <button
             onClick={toggleCollapse}
-            className="p-1 hover:bg-gray-200 rounded transition-colors"
-            aria-label="Collapse sidebar"
+            className="p-0.5 hover:bg-gray-200 rounded transition-colors"
+            aria-label="Collapse node properties"
           >
-            <FaChevronRight className="w-4 h-4 text-gray-600" />
+            <FaChevronRight className="w-3 h-3 text-gray-600" />
           </button>
         </div>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-2">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-xs font-medium text-gray-700 mb-0.5">
             Node Name *
           </label>
           <input
             type="text"
             value={name}
             onChange={(e) => handleNameChange(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
             placeholder="Enter node name"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-xs font-medium text-gray-700 mb-0.5">
             Node Type
           </label>
           <input
             type="text"
             value={nodeType.label}
             disabled
-            className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600 cursor-not-allowed"
+            className="w-full px-2 py-1 text-xs border border-gray-300 rounded bg-gray-100 text-gray-600 cursor-not-allowed"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-xs font-medium text-gray-700 mb-0.5">
             Description
           </label>
           <textarea
             value={description}
             onChange={(e) => handleDescriptionChange(e.target.value)}
-            rows={4}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            rows={2}
+            className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
             placeholder="Enter description..."
           />
         </div>
 
         <div>
-          <div className="flex items-center justify-between mb-2">
-            <label className="block text-sm font-medium text-gray-700">
+          <div className="flex items-center justify-between mb-1">
+            <label className="block text-xs font-medium text-gray-700">
               Custom Attributes
             </label>
             <button
               onClick={handleAddAttribute}
-              className="text-sm text-blue-600 hover:text-blue-800"
+              className="text-xs text-blue-600 hover:text-blue-800"
             >
               + Add
             </button>
           </div>
-          <div className="space-y-2">
+          <div className="space-y-1">
             {Object.entries(attributes).map(([key, value]) => (
-              <div key={key} className="flex gap-2">
+              <div key={key} className="flex gap-1">
                 <input
                   type="text"
                   value={key}
@@ -183,34 +168,34 @@ export function InspectorPanel({ selectedNodeId, isCollapsed = false, onToggleCo
                     setAttributes(newAttributes);
                     updateNode(selectedNodeId!, { attributes: newAttributes });
                   }}
-                  className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded"
+                  className="flex-1 px-1.5 py-0.5 text-xs border border-gray-300 rounded"
                   placeholder="Key"
                 />
                 <input
                   type="text"
                   value={value}
                   onChange={(e) => handleAttributeChange(key, e.target.value)}
-                  className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded"
+                  className="flex-1 px-1.5 py-0.5 text-xs border border-gray-300 rounded"
                   placeholder="Value"
                 />
                 <button
                   onClick={() => handleRemoveAttribute(key)}
-                  className="px-2 py-1 text-sm text-red-600 hover:text-red-800"
+                  className="px-1.5 py-0.5 text-xs text-red-600 hover:text-red-800"
                 >
                   ×
                 </button>
               </div>
             ))}
             {Object.keys(attributes).length === 0 && (
-              <p className="text-sm text-gray-500">No custom attributes</p>
+              <p className="text-xs text-gray-500">No custom attributes</p>
             )}
           </div>
         </div>
 
-        <div className="pt-4 border-t border-gray-200">
+        <div className="pt-2 border-t border-gray-200">
           <button
             onClick={handleDelete}
-            className="w-full px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+            className="w-full px-2 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
           >
             Delete Node
           </button>
