@@ -8,6 +8,7 @@ export const useProject = () => {
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
 
   const addNode = useCallback((type: string, position: { x: number; y: number }) => {
     const newNode: Node = {
@@ -50,7 +51,16 @@ export const useProject = () => {
     if (selectedNodeId === nodeId) {
       setSelectedNodeId(null);
     }
-  }, [selectedNodeId]);
+    // Clear edge selection if the deleted node was part of the selected edge
+    setSelectedEdgeId(prev => {
+      if (!prev) return null;
+      const edge = edges.find(e => e.id === prev);
+      if (edge && (edge.source === nodeId || edge.target === nodeId)) {
+        return null;
+      }
+      return prev;
+    });
+  }, [selectedNodeId, edges]);
 
   const addEdge = useCallback((source: string, target: string) => {
     setEdges(prev => {
@@ -73,12 +83,26 @@ export const useProject = () => {
 
   const deleteEdge = useCallback((edgeId: string) => {
     setEdges(prev => prev.filter(edge => edge.id !== edgeId));
+    if (selectedEdgeId === edgeId) {
+      setSelectedEdgeId(null);
+    }
+  }, [selectedEdgeId]);
+
+  const updateEdge = useCallback((edgeId: string, updates: Partial<Edge>) => {
+    setEdges(prev =>
+      prev.map(edge =>
+        edge.id === edgeId
+          ? { ...edge, ...updates }
+          : edge
+      )
+    );
   }, []);
 
   const loadProject = useCallback((project: Project) => {
     setNodes(project.nodes || []);
     setEdges(project.edges || []);
     setSelectedNodeId(null);
+    setSelectedEdgeId(null);
   }, []);
 
   const getProject = useCallback((): Project => {
@@ -94,6 +118,7 @@ export const useProject = () => {
     setNodes([]);
     setEdges([]);
     setSelectedNodeId(null);
+    setSelectedEdgeId(null);
   }, []);
 
   return {
@@ -101,11 +126,14 @@ export const useProject = () => {
     edges,
     selectedNodeId,
     setSelectedNodeId,
+    selectedEdgeId,
+    setSelectedEdgeId,
     addNode,
     updateNode,
     updateNodePosition,
     deleteNode,
     addEdge,
+    updateEdge,
     deleteEdge,
     loadProject,
     getProject,

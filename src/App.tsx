@@ -5,7 +5,7 @@ import { InspectorPanel } from './components/SidebarRight';
 import { Toolbar } from './components/Toolbar';
 
 function AppContent() {
-  const { selectedNodeId, setSelectedNodeId } = useProjectContext();
+  const { selectedNodeId, setSelectedNodeId, selectedEdgeId, setSelectedEdgeId } = useProjectContext();
 
   return (
     <div className="h-screen flex flex-col">
@@ -18,10 +18,12 @@ function AppContent() {
           <Canvas
             onNodeSelect={setSelectedNodeId}
             selectedNodeId={selectedNodeId}
+            onEdgeSelect={setSelectedEdgeId}
+            selectedEdgeId={selectedEdgeId}
           />
         </div>
         <div className="w-80 flex-shrink-0">
-          <InspectorPanel selectedNodeId={selectedNodeId} />
+          <InspectorPanel selectedNodeId={selectedNodeId} selectedEdgeId={selectedEdgeId} />
         </div>
       </div>
     </div>

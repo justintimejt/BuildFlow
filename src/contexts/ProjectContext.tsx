@@ -6,11 +6,14 @@ interface ProjectContextType {
   edges: ReturnType<typeof useProject>['edges'];
   selectedNodeId: ReturnType<typeof useProject>['selectedNodeId'];
   setSelectedNodeId: ReturnType<typeof useProject>['setSelectedNodeId'];
+  selectedEdgeId: ReturnType<typeof useProject>['selectedEdgeId'];
+  setSelectedEdgeId: ReturnType<typeof useProject>['setSelectedEdgeId'];
   addNode: ReturnType<typeof useProject>['addNode'];
   updateNode: ReturnType<typeof useProject>['updateNode'];
   updateNodePosition: ReturnType<typeof useProject>['updateNodePosition'];
   deleteNode: ReturnType<typeof useProject>['deleteNode'];
   addEdge: ReturnType<typeof useProject>['addEdge'];
+  updateEdge: ReturnType<typeof useProject>['updateEdge'];
   deleteEdge: ReturnType<typeof useProject>['deleteEdge'];
   loadProject: ReturnType<typeof useProject>['loadProject'];
   getProject: ReturnType<typeof useProject>['getProject'];

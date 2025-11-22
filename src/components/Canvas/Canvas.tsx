@@ -11,26 +11,28 @@ import {
   OnEdgesChange,
   OnConnect,
   NodeTypes,
-  ReactFlowInstance
+  ReactFlowInstance,
+  Edge as ReactFlowEdge
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { CustomNode } from '../../nodes/customNodes';
 import { useProjectContext } from '../../contexts/ProjectContext';
-import type { Edge } from '@xyflow/react';
 
 interface CanvasProps {
   onNodeSelect: (nodeId: string | null) => void;
   selectedNodeId: string | null;
+  onEdgeSelect: (edgeId: string | null) => void;
+  selectedEdgeId: string | null;
 }
 
 const nodeTypes: NodeTypes = {
   custom: CustomNode
 };
 
-export function Canvas({ onNodeSelect, selectedNodeId }: CanvasProps) {
+export function Canvas({ onNodeSelect, selectedNodeId, onEdgeSelect, selectedEdgeId }: CanvasProps) {
   const { nodes: projectNodes, edges: projectEdges, addNode, addEdge, deleteNode, deleteEdge, updateNodePosition } = useProjectContext();
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState<ReactFlowEdge>([]);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const reactFlowInstance = useRef<ReactFlowInstance | null>(null);
 
@@ -48,8 +50,19 @@ export function Canvas({ onNodeSelect, selectedNodeId }: CanvasProps) {
   }, [projectNodes, selectedNodeId, setNodes]);
 
   useEffect(() => {
-    setEdges(projectEdges);
-  }, [projectEdges, setEdges]);
+    // Convert project edges to React Flow edges with styles
+    const reactFlowEdges: ReactFlowEdge[] = projectEdges.map(edge => ({
+      id: edge.id,
+      source: edge.source,
+      target: edge.target,
+      type: edge.type || 'smoothstep',
+      selected: edge.id === selectedEdgeId,
+      style: edge.style || {},
+      label: edge.label,
+      animated: edge.animated
+    }));
+    setEdges(reactFlowEdges);
+  }, [projectEdges, selectedEdgeId, setEdges]);
 
   const onConnect: OnConnect = useCallback(
     (params) => {
@@ -96,7 +109,16 @@ export function Canvas({ onNodeSelect, selectedNodeId }: CanvasProps) {
 
   const onPaneClick = useCallback(() => {
     onNodeSelect(null);
-  }, [onNodeSelect]);
+    onEdgeSelect(null);
+  }, [onNodeSelect, onEdgeSelect]);
+
+  const onEdgeClick = useCallback(
+    (_event: React.MouseEvent, edge: ReactFlowEdge) => {
+      onEdgeSelect(edge.id);
+      onNodeSelect(null); // Deselect node when edge is selected
+    },
+    [onEdgeSelect, onNodeSelect]
+  );
 
   const onDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault();
@@ -138,6 +160,7 @@ export function Canvas({ onNodeSelect, selectedNodeId }: CanvasProps) {
         onEdgesChange={onEdgesChangeHandler}
         onConnect={onConnect}
         onNodeClick={onNodeClick}
+        onEdgeClick={onEdgeClick}
         onPaneClick={onPaneClick}
         onDragOver={onDragOver}
         onDrop={onDrop}
