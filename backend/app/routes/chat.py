@@ -117,7 +117,7 @@ async def chat(req: ChatRequest):
 
         # 3) Build system prompt for Gemini
         system_instruction = f"""
-You are ArchCoach, an AI that helps edit a system design diagram.
+You are ArchCoach, a friendly and helpful AI assistant that helps users design system architecture diagrams.
 The diagram is represented as a JSON "project" with nodes and edges.
 
 Current diagram JSON:
@@ -126,19 +126,34 @@ Current diagram JSON:
 Recent chat:
 {history_text}
 
-User will send a new instruction. You MUST respond with a JSON array
-of diagram edit operations ONLY. Each operation must be a single JSON object with:
-- "op": one of "add_node", "update_node", "delete_node", "add_edge", "delete_edge"
-- "payload": the data needed to perform the operation.
-- "metadata": (optional) an object with positioning info like {{"x": 0, "y": 0}}
+When the user sends an instruction, you should:
+1. Provide a friendly, conversational response explaining what you're doing
+2. Generate the necessary diagram operations to fulfill their request
 
-CRITICAL FORMATTING RULES:
-1. Return ONLY valid JSON array. Do NOT wrap it in markdown code blocks (```json or ```).
-2. Do NOT include explanations, comments, or any text outside the JSON array.
-3. Each operation must be a complete object. The "metadata" property MUST be INSIDE each operation object, not as a separate array element.
-4. Example CORRECT format: [{{"op": "add_node", "payload": {{...}}, "metadata": {{"x": 0, "y": 0}}}}, ...]
-5. Example WRONG format: [{{"op": "add_node", "payload": {{...}}}}, "metadata": {{"x": 0, "y": 0}}, ...]
-6. Return the JSON array directly, starting with [ and ending with ].
+You MUST respond with a JSON object in this exact format:
+{{
+  "message": "A friendly, conversational explanation of what you're doing. Be helpful and clear. Describe what components you're adding, removing, or modifying.",
+  "operations": [
+    {{"op": "add_node", "payload": {{"type": "web-server", "position": {{"x": 100, "y": 100}}, "data": {{"name": "API Server"}}}}, "metadata": {{"x": 100, "y": 100}}}},
+    {{"op": "add_edge", "payload": {{"source": "node-id-1", "target": "node-id-2"}}}}
+  ]
+}}
+
+Available operations:
+- "add_node": {{"op": "add_node", "payload": {{"type": string, "position": {{"x": number, "y": number}}, "data": {{"name": string, "description": string, "attributes": object}}}}, "metadata": {{"x": number, "y": number}}}}
+- "update_node": {{"op": "update_node", "payload": {{"id": string, "data": {{"name": string, "description": string, "attributes": object}}}}}}
+- "delete_node": {{"op": "delete_node", "payload": {{"id": string}}}}
+- "add_edge": {{"op": "add_edge", "payload": {{"source": string, "target": string, "type": string (optional)}}}}
+- "delete_edge": {{"op": "delete_edge", "payload": {{"id": string}}}}
+
+Available node types: web-server, database, worker, cache, queue, storage, third-party-api, compute-node, load-balancer, message-broker, cdn, monitoring
+
+IMPORTANT:
+- The "message" field should be conversational and helpful, describing what you did (e.g., "I've added a database node to your diagram!")
+- The "operations" array should contain the actual diagram modifications
+- If the user asks a question or needs help (not a diagram modification), respond with a helpful message and an empty operations array: {{"message": "...", "operations": []}}
+- Return ONLY valid JSON. Do NOT wrap it in markdown code blocks (```json or ```).
+- Do NOT include any text outside the JSON object.
 """
 
         # 4) Call Gemini API
@@ -277,6 +292,34 @@ CRITICAL FORMATTING RULES:
         if not reply_text:
             raise HTTPException(status_code=500, detail="Empty response from Gemini")
 
+        # Parse the response JSON
+        import json
+        try:
+            response_data = json.loads(reply_text)
+            
+            # Extract message and operations
+            assistant_message = response_data.get("message", "I've processed your request.")
+            operations = response_data.get("operations", [])
+            
+            # Validate operations is a list
+            if not isinstance(operations, list):
+                operations = []
+            
+        except json.JSONDecodeError as e:
+            print(f"Warning: Failed to parse AI response as JSON: {e}")
+            print(f"Raw response: {reply_text}")
+            # Fallback: treat as old format (just operations array)
+            try:
+                operations = json.loads(reply_text)
+                if isinstance(operations, list):
+                    assistant_message = "I've updated your diagram."
+                else:
+                    operations = []
+                    assistant_message = "I received your message, but couldn't parse the response format."
+            except:
+                operations = []
+                assistant_message = "I received your message, but encountered an error processing it."
+
         # 5) Store messages (user + assistant) for history
         try:
             supabase.table("chat_messages").insert([
@@ -288,15 +331,18 @@ CRITICAL FORMATTING RULES:
                 {
                     "project_id": req.projectId,
                     "role": "assistant",
-                    "content": reply_text,
+                    "content": assistant_message,
                 },
             ]).execute()
         except Exception as e:
             print(f"Warning: Failed to save chat history: {e}")
             # Don't fail the request if history save fails
 
-        # Return the raw operations JSON string; frontend will parse and apply
-        return {"operationsJson": reply_text}
+        # Return both the message and operations
+        return {
+            "message": assistant_message,
+            "operations": operations
+        }
     
     except HTTPException:
         # Re-raise HTTP exceptions (they already have proper status codes)

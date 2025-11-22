@@ -47,172 +47,181 @@ export function useChatWithGemini(projectId: string) {
       }
 
       const data = await res.json();
-      const operationsJson = data.operationsJson as string;
-
-      const assistantMessage: ChatMessage = {
-        id: crypto.randomUUID(),
-        role: "assistant",
-        content: operationsJson,
-      };
-      setMessages((prev) => [...prev, assistantMessage]);
-
-      // Parse operations and apply to diagram
-      // Gemini may return JSON wrapped in markdown code blocks, so we need to extract it
-      let cleanedJson = operationsJson.trim();
       
-      // Remove markdown code blocks if present (```json ... ``` or ``` ... ```)
-      if (cleanedJson.startsWith('```')) {
-        // Find the first newline after ```
-        const firstNewline = cleanedJson.indexOf('\n');
-        if (firstNewline !== -1) {
-          cleanedJson = cleanedJson.substring(firstNewline + 1);
-        } else {
-          // No newline, just remove ```
-          cleanedJson = cleanedJson.substring(3);
-        }
-        // Remove trailing ```
-        const lastBackticks = cleanedJson.lastIndexOf('```');
-        if (lastBackticks !== -1) {
-          cleanedJson = cleanedJson.substring(0, lastBackticks);
-        }
-        cleanedJson = cleanedJson.trim();
-      }
+      // Handle new format with message and operations, or fallback to old format
+      let assistantMessage: ChatMessage;
+      let operations: any[] = [];
       
-      let operations;
-      try {
-        operations = JSON.parse(cleanedJson);
-      } catch (e) {
-        // Try to fix malformed JSON where metadata appears as separate objects
-        // The issue is: {"op": "...", "payload": {...}}, "metadata": {...}
-        // Should be: {"op": "...", "payload": {...}, "metadata": {...}}
+      if (data.message && data.operations !== undefined) {
+        // New format: { message: string, operations: array }
+        assistantMessage = {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          content: data.message,
+        };
+        operations = Array.isArray(data.operations) ? data.operations : [];
+      } else if (data.operationsJson) {
+        // Old format: { operationsJson: string }
+        const operationsJson = data.operationsJson as string;
+        assistantMessage = {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          content: operationsJson,
+        };
+        
+        // Parse operations from JSON string
+        let cleanedJson = operationsJson.trim();
+        
+        // Remove markdown code blocks if present (```json ... ``` or ``` ... ```)
+        if (cleanedJson.startsWith('```')) {
+          // Find the first newline after ```
+          const firstNewline = cleanedJson.indexOf('\n');
+          if (firstNewline !== -1) {
+            cleanedJson = cleanedJson.substring(firstNewline + 1);
+          } else {
+            // No newline, just remove ```
+            cleanedJson = cleanedJson.substring(3);
+          }
+          // Remove trailing ```
+          const lastBackticks = cleanedJson.lastIndexOf('```');
+          if (lastBackticks !== -1) {
+            cleanedJson = cleanedJson.substring(0, lastBackticks);
+          }
+          cleanedJson = cleanedJson.trim();
+        }
+        
+        let parsedOperations;
         try {
-          // Use a state machine to properly handle nested braces and merge metadata
-          let fixedJson = '';
-          let i = 0;
-          let objectDepth = 0; // Track depth of object braces (not array brackets)
-          let inString = false;
-          let escapeNext = false;
-          
-          while (i < cleanedJson.length) {
-            const char = cleanedJson[i];
+          parsedOperations = JSON.parse(cleanedJson);
+        } catch (e) {
+          // Try to fix malformed JSON where metadata appears as separate objects
+          try {
+            // Use a state machine to properly handle nested braces and merge metadata
+            let fixedJson = '';
+            let i = 0;
+            let objectDepth = 0;
+            let inString = false;
+            let escapeNext = false;
             
-            if (escapeNext) {
-              fixedJson += char;
-              escapeNext = false;
-              i++;
-              continue;
-            }
-            
-            if (char === '\\') {
-              escapeNext = true;
-              fixedJson += char;
-              i++;
-              continue;
-            }
-            
-            if (char === '"') {
-              inString = !inString;
-              fixedJson += char;
-              i++;
-              continue;
-            }
-            
-            if (!inString) {
-              if (char === '{') {
-                objectDepth++;
+            while (i < cleanedJson.length) {
+              const char = cleanedJson[i];
+              
+              if (escapeNext) {
                 fixedJson += char;
-              } else if (char === '}') {
-                objectDepth--;
+                escapeNext = false;
+                i++;
+                continue;
+              }
+              
+              if (char === '\\') {
+                escapeNext = true;
                 fixedJson += char;
-                
-                // When we close a top-level object in the array (objectDepth back to 0)
-                // Check if the next thing is ", "metadata":"
-                if (objectDepth === 0) {
-                  // Look ahead for ", "metadata": {...}"
-                  const remaining = cleanedJson.substring(i + 1).trim();
-                  if (remaining.startsWith(', "metadata":')) {
-                    // Extract the metadata object (handle nested braces)
-                    let metadataStart = remaining.indexOf('{');
-                    if (metadataStart !== -1) {
-                      let metadataDepth = 0;
-                      let metadataEnd = -1;
-                      let inMetadataString = false;
-                      let escapeNext = false;
-                      
-                      for (let j = metadataStart; j < remaining.length; j++) {
-                        const metaChar = remaining[j];
+                i++;
+                continue;
+              }
+              
+              if (char === '"') {
+                inString = !inString;
+                fixedJson += char;
+                i++;
+                continue;
+              }
+              
+              if (!inString) {
+                if (char === '{') {
+                  objectDepth++;
+                  fixedJson += char;
+                } else if (char === '}') {
+                  objectDepth--;
+                  fixedJson += char;
+                  
+                  if (objectDepth === 0) {
+                    const remaining = cleanedJson.substring(i + 1).trim();
+                    if (remaining.startsWith(', "metadata":')) {
+                      let metadataStart = remaining.indexOf('{');
+                      if (metadataStart !== -1) {
+                        let metadataDepth = 0;
+                        let metadataEnd = -1;
+                        let inMetadataString = false;
+                        let escapeNext = false;
                         
-                        if (escapeNext) {
-                          escapeNext = false;
-                          continue;
-                        }
-                        
-                        if (metaChar === '\\') {
-                          escapeNext = true;
-                          continue;
-                        }
-                        
-                        if (metaChar === '"') {
-                          inMetadataString = !inMetadataString;
-                          continue;
-                        }
-                        
-                        if (!inMetadataString) {
-                          if (metaChar === '{') {
-                            metadataDepth++;
-                          } else if (metaChar === '}') {
-                            metadataDepth--;
-                            if (metadataDepth === 0) {
-                              metadataEnd = j + 1;
-                              break;
+                        for (let j = metadataStart; j < remaining.length; j++) {
+                          const metaChar = remaining[j];
+                          
+                          if (escapeNext) {
+                            escapeNext = false;
+                            continue;
+                          }
+                          
+                          if (metaChar === '\\') {
+                            escapeNext = true;
+                            continue;
+                          }
+                          
+                          if (metaChar === '"') {
+                            inMetadataString = !inMetadataString;
+                            continue;
+                          }
+                          
+                          if (!inMetadataString) {
+                            if (metaChar === '{') {
+                              metadataDepth++;
+                            } else if (metaChar === '}') {
+                              metadataDepth--;
+                              if (metadataDepth === 0) {
+                                metadataEnd = j + 1;
+                                break;
+                              }
                             }
                           }
                         }
-                      }
-                      
-                      if (metadataEnd !== -1) {
-                        const metadataObj = remaining.substring(metadataStart, metadataEnd);
-                        const fullMatch = remaining.substring(0, metadataEnd);
                         
-                        // Merge metadata into the operation object
-                        fixedJson = fixedJson.slice(0, -1); // Remove the closing brace
-                        fixedJson += `, "metadata": ${metadataObj}}`;
-                        i += 1 + fullMatch.length;
-                        continue;
+                        if (metadataEnd !== -1) {
+                          const metadataObj = remaining.substring(metadataStart, metadataEnd);
+                          const fullMatch = remaining.substring(0, metadataEnd);
+                          
+                          fixedJson = fixedJson.slice(0, -1);
+                          fixedJson += `, "metadata": ${metadataObj}}`;
+                          i += 1 + fullMatch.length;
+                          continue;
+                        }
                       }
                     }
                   }
+                } else {
+                  fixedJson += char;
                 }
               } else {
                 fixedJson += char;
               }
-            } else {
-              fixedJson += char;
+              
+              i++;
             }
             
-            i++;
+            parsedOperations = JSON.parse(fixedJson);
+            console.log("Successfully fixed malformed JSON structure");
+          } catch (fixError) {
+            console.error("Failed to parse operations JSON", e);
+            console.error("Failed to fix malformed JSON", fixError);
+            parsedOperations = [];
           }
-          
-          operations = JSON.parse(fixedJson);
-          console.log("Successfully fixed malformed JSON structure");
-        } catch (fixError) {
-          console.error("Failed to parse operations JSON", e);
-          console.error("Failed to fix malformed JSON", fixError);
-          console.error("Original response:", operationsJson);
-          console.error("Cleaned JSON:", cleanedJson);
-          // Add error message to chat
-          const parseErrorMessage: ChatMessage = {
-            id: crypto.randomUUID(),
-            role: "assistant",
-            content: `Error: Failed to parse JSON response from AI. The response may not be in the correct format.`,
-          };
-          setMessages((prev) => [...prev, parseErrorMessage]);
-          return;
         }
+        
+        operations = Array.isArray(parsedOperations) ? parsedOperations : [];
+      } else {
+        // No operations in response
+        assistantMessage = {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          content: data.message || "I received your message.",
+        };
       }
       
+      // Add message to chat
+      setMessages((prev) => [...prev, assistantMessage]);
+      
       // Post-process operations to fix any remaining structure issues
-      if (Array.isArray(operations)) {
+      if (Array.isArray(operations) && operations.length > 0) {
         const fixedOperations: any[] = [];
         for (let i = 0; i < operations.length; i++) {
           const item = operations[i];
@@ -231,12 +240,9 @@ export function useChatWithGemini(projectId: string) {
           fixedOperations.push(item);
         }
         operations = fixedOperations;
-      }
-
-      if (Array.isArray(operations)) {
+        
+        // Apply operations to diagram
         applyOperations(operations);
-      } else {
-        console.error("Operations must be an array", operations);
       }
     } catch (err) {
       console.error("Chat error", err);

@@ -55,13 +55,9 @@ export function ChatPanel({ projectId }: ChatPanelProps) {
               <div className="text-sm font-medium mb-1">
                 {message.role === 'user' ? 'You' : 'ArchCoach'}
               </div>
-              {message.role === 'assistant' ? (
-                <pre className="text-xs whitespace-pre-wrap font-mono">
-                  {message.content}
-                </pre>
-              ) : (
-                <div className="text-sm">{message.content}</div>
-              )}
+              <div className="text-sm break-words whitespace-pre-wrap">
+                {message.content}
+              </div>
             </div>
           </div>
         ))}

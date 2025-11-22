@@ -116,13 +116,9 @@ export function ChatBar({ projectId }: ChatBarProps) {
                     <div className="text-xs font-medium mb-1 opacity-75">
                       {message.role === 'user' ? 'You' : 'ArchCoach'}
                     </div>
-                    {message.role === 'assistant' ? (
-                      <pre className="text-xs whitespace-pre-wrap font-mono break-words">
-                        {message.content}
-                      </pre>
-                    ) : (
-                      <div className="text-sm break-words">{message.content}</div>
-                    )}
+                    <div className="text-sm break-words whitespace-pre-wrap">
+                      {message.content}
+                    </div>
                   </div>
                 </div>
               ))}
