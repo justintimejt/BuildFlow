@@ -131,58 +131,143 @@ of diagram edit operations ONLY. Each operation must have:
 - "op": one of "add_node", "update_node", "delete_node", "add_edge", "delete_edge"
 - "payload": the data needed to perform the operation.
 
-Do not include explanations, comments, or non-JSON text. JSON only.
+CRITICAL: Return ONLY valid JSON. Do NOT wrap it in markdown code blocks (```json or ```).
+Do NOT include explanations, comments, or any text outside the JSON array.
+Return the JSON array directly, starting with [ and ending with ].
 """
 
         # 4) Call Gemini API
         try:
-            # List available models and find one that supports generateContent
-            model_name = None
+            # First, list all available models to see what's actually available
+            available_models = []
             try:
-                print("Listing available Gemini models...")
+                print("📋 Listing all available Gemini models...")
                 for model in genai.list_models():
+                    model_display_name = model.name.split('/')[-1] if '/' in model.name else model.name
                     if 'generateContent' in model.supported_generation_methods:
-                        model_name = model.name
-                        print(f"Found available model: {model_name}")
-                        break
-            except Exception as e:
-                print(f"Warning: Could not list models: {e}")
-            
-            # If no model found from listing, try common model names
-            if not model_name:
-                model_names_to_try = [
-                    "gemini-1.5-flash",
-                    "gemini-1.5-flash-latest", 
-                    "gemini-pro",
-                    "gemini-pro-latest",
-                    "gemini-1.0-pro",
-                ]
+                        available_models.append({
+                            'name': model_display_name,
+                            'full_name': model.name,
+                            'methods': model.supported_generation_methods
+                        })
+                        print(f"  ✅ {model_display_name} (full: {model.name})")
                 
-                for name in model_names_to_try:
+                if not available_models:
+                    print("⚠️  No models with generateContent support found")
+                else:
+                    print(f"📊 Found {len(available_models)} available model(s)")
+            except Exception as e:
+                print(f"⚠️  Warning: Could not list models: {e}")
+                print(traceback.format_exc())
+            
+            # Prioritize free-tier compatible models
+            # Updated list based on actual available models (gemini-1.5-flash is no longer available)
+            # Free tier typically supports: gemini-2.5-flash, gemini-2.0-flash, gemini-flash-latest
+            preferred_models = [
+                "gemini-2.5-flash",           # Latest stable free-tier model
+                "gemini-2.0-flash",           # Alternative free-tier option
+                "gemini-flash-latest",         # Latest flash model
+                "gemini-2.5-flash-lite",      # Lite version
+                "gemini-2.0-flash-lite",      # Alternative lite
+                "gemini-pro-latest",          # Pro model (may have limits)
+                "gemini-1.5-flash",           # Legacy (may not be available)
+                "gemini-1.5-pro",             # Legacy (may not be available)
+            ]
+            
+            model_name = None
+            model_full_name = None
+            
+            # First, try to find preferred models from the list
+            if available_models:
+                for preferred in preferred_models:
+                    for model_info in available_models:
+                        # Exact match or starts with preferred name
+                        if (model_info['name'] == preferred or 
+                            model_info['name'].startswith(preferred) or
+                            preferred in model_info['name']):
+                            # Check if it's a free-tier model (not experimental, not preview)
+                            if ('-exp' not in model_info['name'].lower() and 
+                                '-preview' not in model_info['name'].lower()):
+                                model_name = model_info['name']
+                                model_full_name = model_info['full_name']
+                                print(f"✅ Selected free-tier model: {model_name} (full: {model_full_name})")
+                                break
+                    if model_name:
+                        break
+            
+            # If no preferred model found, use the first available non-experimental, non-preview model
+            if not model_name and available_models:
+                for model_info in available_models:
+                    if ('-exp' not in model_info['name'].lower() and 
+                        '-preview' not in model_info['name'].lower()):
+                        model_name = model_info['name']
+                        model_full_name = model_info['full_name']
+                        print(f"✅ Selected available model: {model_name} (full: {model_full_name})")
+                        break
+            
+            # Fallback: try creating models directly (for backwards compatibility)
+            if not model_name:
+                print("⚠️  No model found from list, trying direct model creation...")
+                for name in preferred_models:
                     try:
-                        # Try to create the model - if it fails, it doesn't exist
                         test_model = genai.GenerativeModel(name)
                         model_name = name
-                        print(f"Using model: {model_name}")
+                        model_full_name = name
+                        print(f"✅ Using model (direct): {model_name}")
                         break
                     except Exception as e:
-                        print(f"Model {name} not available: {e}")
+                        print(f"  Model {name} not available: {e}")
                         continue
             
             if not model_name:
-                raise HTTPException(
-                    status_code=503,
-                    detail="No available Gemini models found. Please check your API key and model availability."
-                )
+                error_detail = "No available Gemini models found. "
+                if available_models:
+                    error_detail += f"Available models: {', '.join([m['name'] for m in available_models[:5]])}"
+                else:
+                    error_detail += "Please check your API key and model availability."
+                raise HTTPException(status_code=503, detail=error_detail)
             
-            model = genai.GenerativeModel(model_name)
+            # Use display name (GenerativeModel accepts just the model name, not the full path)
+            # The full name is like "models/gemini-2.5-flash" but we need just "gemini-2.5-flash"
+            model_to_use = model_name  # Use display name, not full path
+            print(f"🔧 Creating GenerativeModel with: {model_to_use}")
+            model = genai.GenerativeModel(model_to_use)
             prompt = system_instruction + "\nUSER:\n" + req.message
             response = model.generate_content(prompt)
             reply_text = (response.text or "").strip()
+            
+            # Clean up response: remove markdown code blocks if present
+            if reply_text.startswith('```'):
+                # Find the first newline after ```
+                first_newline = reply_text.find('\n')
+                if first_newline != -1:
+                    reply_text = reply_text[first_newline + 1:]
+                else:
+                    reply_text = reply_text[3:]  # Remove ``` if no newline
+                # Remove trailing ```
+                last_backticks = reply_text.rfind('```')
+                if last_backticks != -1:
+                    reply_text = reply_text[:last_backticks]
+                reply_text = reply_text.strip()
         except Exception as e:
+            error_msg = str(e)
             print(f"Error calling Gemini API: {e}")
             print(traceback.format_exc())
-            raise HTTPException(status_code=500, detail=f"Gemini API error: {str(e)}")
+            
+            # Handle rate limit errors with helpful messages
+            if "429" in error_msg or "quota" in error_msg.lower() or "rate limit" in error_msg.lower():
+                if "free_tier" in error_msg.lower():
+                    raise HTTPException(
+                        status_code=429,
+                        detail="Gemini API free tier quota exceeded. Please wait a few minutes or upgrade your API plan. Free tier typically supports gemini-2.5-flash, gemini-2.0-flash, and gemini-flash-latest models."
+                    )
+                else:
+                    raise HTTPException(
+                        status_code=429,
+                        detail="Gemini API rate limit exceeded. Please wait a few minutes before trying again."
+                    )
+            
+            raise HTTPException(status_code=500, detail=f"Gemini API error: {error_msg}")
 
         if not reply_text:
             raise HTTPException(status_code=500, detail="Empty response from Gemini")

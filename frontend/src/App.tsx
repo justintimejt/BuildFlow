@@ -34,7 +34,7 @@ function AppContent() {
         <div className="w-64 flex-shrink-0">
           <ComponentLibrary />
         </div>
-        <div className="flex-1">
+        <div className="flex-1" style={{ minHeight: 0, height: '100%' }}>
           <Canvas
             onNodeSelect={setSelectedNodeId}
             selectedNodeId={selectedNodeId}

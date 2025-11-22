@@ -38,10 +38,5 @@ dist-ssr
 .env
 .env.local
 .env.*.local
-backend/.env
-frontend/.env
 
-# Track .env.example files (safe to commit)
-!.env.example
-!backend/.env.example
-!frontend/.env.example
+

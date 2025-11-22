@@ -1,3 +1,17 @@
+# Patch importlib.metadata for Python 3.9 compatibility
+# This ensures packages_distributions is available via the backport
+import sys
+try:
+    import importlib_metadata
+    # For Python 3.9, importlib.metadata may not exist or may not have packages_distributions
+    # Replace it with the backport which has full functionality
+    if 'importlib.metadata' not in sys.modules:
+        sys.modules['importlib.metadata'] = importlib_metadata
+    elif not hasattr(sys.modules['importlib.metadata'], 'packages_distributions'):
+        sys.modules['importlib.metadata'] = importlib_metadata
+except ImportError:
+    pass  # importlib-metadata not installed, use built-in
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
