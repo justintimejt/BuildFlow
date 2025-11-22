@@ -2,19 +2,46 @@ import { useRef } from 'react';
 import { useProjectContext } from '../../contexts/ProjectContext';
 import { useStorage } from '../../hooks/useStorage';
 import { useExport } from '../../hooks/useExport';
+import { supabaseClient, isSupabaseAvailable } from '../../lib/supabaseClient';
 import { FaSave, FaFolderOpen, FaDownload, FaFileExport, FaTrash } from 'react-icons/fa';
 
-export function Toolbar() {
+interface ToolbarProps {
+  projectId?: string | null;
+}
+
+export function Toolbar({ projectId }: ToolbarProps) {
   const { getProject, loadProject, clearProject } = useProjectContext();
   const { saveProject, exportToJSON, importFromJSON } = useStorage();
   const { exportAsPNG } = useExport();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const project = getProject();
     const name = prompt('Enter project name (optional):') || undefined;
     try {
+      // Save to localStorage
       saveProject(project, name);
+      
+      // If Supabase is available and we have a projectId, also update Supabase
+      if (name && projectId && isSupabaseAvailable() && supabaseClient) {
+        try {
+          const projectWithName = {
+            ...project,
+            name: name
+          };
+          await supabaseClient
+            .from("projects")
+            .update({
+              name: name,
+              diagram_json: projectWithName,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", projectId);
+        } catch (error) {
+          console.error("Failed to update project name in Supabase:", error);
+        }
+      }
+      
       alert('Project saved successfully!');
     } catch (error) {
       alert('Failed to save project');

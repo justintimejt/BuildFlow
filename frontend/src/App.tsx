@@ -7,6 +7,7 @@ import { Toolbar } from './components/Toolbar';
 import { ChatBar } from './components/Chat';
 import { useProjectId } from './hooks/useProjectId';
 import { useSupabaseDiagramSync } from './hooks/useSupabaseDiagramSync';
+import { useLoadProjectFromSupabase } from './hooks/useLoadProjectFromSupabase';
 import { isSupabaseAvailable } from './lib/supabaseClient';
 
 function AppContent() {
@@ -14,6 +15,9 @@ function AppContent() {
   const { projectId, loading } = useProjectId('Untitled Project');
   const [leftSidebarCollapsed, setLeftSidebarCollapsed] = useState(false);
   const [rightSidebarCollapsed, setRightSidebarCollapsed] = useState(false);
+  
+  // Load project from Supabase when projectId is available
+  useLoadProjectFromSupabase(projectId || null);
   
   // Sync diagram to Supabase (only if Supabase is configured)
   useSupabaseDiagramSync(projectId || null);
@@ -32,7 +36,7 @@ function AppContent() {
 
   return (
     <div className="h-screen flex flex-col">
-      <Toolbar />
+      <Toolbar projectId={projectId} />
       <div className="flex-1 flex overflow-hidden relative">
         <div className={`${leftSidebarCollapsed ? 'w-0' : 'w-64'} flex-shrink-0 transition-all duration-300 ease-in-out ${leftSidebarCollapsed ? 'overflow-visible' : 'overflow-hidden'}`}>
           <ComponentLibrary 
