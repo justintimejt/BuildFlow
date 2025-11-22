@@ -1,40 +1,49 @@
-import { ProjectProvider, useProjectContext } from './contexts/ProjectContext';
-import { ComponentLibrary } from './components/SidebarLeft';
-import { Canvas } from './components/Canvas';
-import { InspectorPanel } from './components/SidebarRight';
-import { Toolbar } from './components/Toolbar';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { AnimatePresence } from 'framer-motion';
+import { useEffect } from 'react';
+import { LandingPage } from './pages/LandingPage';
+import { CanvasPage } from './pages/CanvasPage';
+import { LoadingAnimation } from './components/ui/loading-animation';
+import { NavigationProvider, useNavigationContext } from './contexts/NavigationContext';
 
-function AppContent() {
-  const { selectedNodeId, setSelectedNodeId, selectedEdgeId, setSelectedEdgeId } = useProjectContext();
+function AppRoutes() {
+  const location = useLocation();
+  const { isNavigating, setIsNavigating } = useNavigationContext();
+
+  useEffect(() => {
+    if (isNavigating) {
+      const timer = setTimeout(() => {
+        setIsNavigating(false);
+      }, 1000); // Show loading for 1 second
+
+      return () => clearTimeout(timer);
+    }
+  }, [location.pathname, isNavigating, setIsNavigating]);
 
   return (
-    <div className="h-screen flex flex-col">
-      <Toolbar />
-      <div className="flex-1 flex overflow-hidden">
-        <div className="w-64 flex-shrink-0">
-          <ComponentLibrary />
-        </div>
-        <div className="flex-1">
-          <Canvas
-            onNodeSelect={setSelectedNodeId}
-            selectedNodeId={selectedNodeId}
-            onEdgeSelect={setSelectedEdgeId}
-            selectedEdgeId={selectedEdgeId}
-          />
-        </div>
-        <div className="w-80 flex-shrink-0">
-          <InspectorPanel selectedNodeId={selectedNodeId} selectedEdgeId={selectedEdgeId} />
-        </div>
-      </div>
-    </div>
+    <>
+      <AnimatePresence mode="wait">
+        {isNavigating ? (
+          <LoadingAnimation key="loading" />
+        ) : (
+          <Routes location={location} key={location.pathname}>
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/canvas" element={<CanvasPage />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        )}
+      </AnimatePresence>
+    </>
   );
 }
 
 function App() {
   return (
-    <ProjectProvider>
-      <AppContent />
-    </ProjectProvider>
+    <BrowserRouter>
+      <NavigationProvider>
+        <AppRoutes />
+      </NavigationProvider>
+    </BrowserRouter>
   );
 }
 
