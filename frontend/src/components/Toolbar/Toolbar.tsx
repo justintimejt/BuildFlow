@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useEffect } from 'react';
 import { useProjectContext } from '../../contexts/ProjectContext';
 import { useStorage } from '../../hooks/useStorage';
 import { useExport } from '../../hooks/useExport';
@@ -15,11 +15,36 @@ interface ToolbarProps {
 }
 
 export function Toolbar({ projectId }: ToolbarProps) {
-  const { getProject, loadProject, clearProject } = useProjectContext();
+  const { getProject, loadProject, clearProject, undo, redo, canUndo, canRedo } = useProjectContext();
   const { reactFlowInstance } = useReactFlowContext();
   const { saveProject, exportToJSON, importFromJSON } = useStorage();
   const { exportAsPNG } = useExport();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Keyboard shortcuts for undo/redo (global, works from anywhere)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Check for Ctrl+Z (undo) or Ctrl+Y / Ctrl+Shift+Z (redo)
+      if (e.ctrlKey || e.metaKey) {
+        if (e.key === 'z' && !e.shiftKey) {
+          e.preventDefault();
+          if (canUndo) {
+            undo();
+          }
+        } else if ((e.key === 'y') || (e.key === 'z' && e.shiftKey)) {
+          e.preventDefault();
+          if (canRedo) {
+            redo();
+          }
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [undo, redo, canUndo, canRedo]);
 
   const handleSave = async () => {
     const project = getProject();

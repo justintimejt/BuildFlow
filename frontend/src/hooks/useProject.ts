@@ -1,16 +1,104 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import type { Node, Edge, Project } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 import { PROJECT_VERSION } from '../utils/constants';
 import { getDefaultNodeName } from '../nodes/nodeConfig';
 import { optimizeLayout, type LayoutAlgorithm } from '../utils/layoutAlgorithms';
 
+interface HistoryState {
+  nodes: Node[];
+  edges: Edge[];
+  selectedNodeId: string | null;
+}
+
+const MAX_HISTORY_SIZE = 50;
+
 export const useProject = () => {
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  
+  // History management
+  const [undoStack, setUndoStack] = useState<HistoryState[]>([]);
+  const [redoStack, setRedoStack] = useState<HistoryState[]>([]);
+  const isUndoRedoOperation = useRef(false);
+
+  // Save current state to history
+  const saveState = useCallback(() => {
+    if (isUndoRedoOperation.current) {
+      return; // Don't save state during undo/redo operations
+    }
+    
+    const currentState: HistoryState = {
+      nodes: JSON.parse(JSON.stringify(nodes)), // Deep copy
+      edges: JSON.parse(JSON.stringify(edges)), // Deep copy
+      selectedNodeId
+    };
+    
+    setUndoStack(prev => {
+      const newStack = [...prev, currentState];
+      // Limit history size
+      if (newStack.length > MAX_HISTORY_SIZE) {
+        return newStack.slice(-MAX_HISTORY_SIZE);
+      }
+      return newStack;
+    });
+    
+    // Clear redo stack when a new action is performed
+    setRedoStack([]);
+  }, [nodes, edges, selectedNodeId]);
+
+  // Restore state from history
+  const restoreState = useCallback((state: HistoryState) => {
+    isUndoRedoOperation.current = true;
+    setNodes(state.nodes);
+    setEdges(state.edges);
+    setSelectedNodeId(state.selectedNodeId);
+    // Reset flag after state update
+    setTimeout(() => {
+      isUndoRedoOperation.current = false;
+    }, 0);
+  }, []);
+
+  // Undo function
+  const undo = useCallback(() => {
+    if (undoStack.length === 0) return;
+    
+    const currentState: HistoryState = {
+      nodes: JSON.parse(JSON.stringify(nodes)),
+      edges: JSON.parse(JSON.stringify(edges)),
+      selectedNodeId
+    };
+    
+    const previousState = undoStack[undoStack.length - 1];
+    setUndoStack(prev => prev.slice(0, -1));
+    setRedoStack(prev => [...prev, currentState]);
+    
+    restoreState(previousState);
+  }, [undoStack, nodes, edges, selectedNodeId, restoreState]);
+
+  // Redo function
+  const redo = useCallback(() => {
+    if (redoStack.length === 0) return;
+    
+    const currentState: HistoryState = {
+      nodes: JSON.parse(JSON.stringify(nodes)),
+      edges: JSON.parse(JSON.stringify(edges)),
+      selectedNodeId
+    };
+    
+    const nextState = redoStack[redoStack.length - 1];
+    setRedoStack(prev => prev.slice(0, -1));
+    setUndoStack(prev => [...prev, currentState]);
+    
+    restoreState(nextState);
+  }, [redoStack, nodes, edges, selectedNodeId, restoreState]);
+
+  const canUndo = undoStack.length > 0;
+  const canRedo = redoStack.length > 0;
 
   const addNode = useCallback((type: string, position: { x: number; y: number }) => {
+    saveState();
     const newNode: Node = {
       id: uuidv4(),
       type,
@@ -23,9 +111,10 @@ export const useProject = () => {
     };
     setNodes(prev => [...prev, newNode]);
     return newNode.id;
-  }, []);
+  }, [saveState]);
 
   const updateNode = useCallback((nodeId: string, updates: Partial<Node['data']>) => {
+    saveState();
     setNodes(prev =>
       prev.map(node =>
         node.id === nodeId
@@ -33,9 +122,28 @@ export const useProject = () => {
           : node
       )
     );
-  }, []);
+  }, [saveState]);
+
+  // Track the last node that was being dragged to batch position updates
+  const lastDraggedNodeRef = useRef<string | null>(null);
+  const dragStartStateRef = useRef<HistoryState | null>(null);
 
   const updateNodePosition = useCallback((nodeId: string, position: { x: number; y: number }) => {
+    // Canvas calls this when dragging ends (dragging === false)
+    // Save state before the first position update of a drag session
+    if (lastDraggedNodeRef.current !== nodeId) {
+      // This is a new drag session - save the state before drag started
+      if (lastDraggedNodeRef.current === null && dragStartStateRef.current === null) {
+        // First drag in this session - save state
+        dragStartStateRef.current = {
+          nodes: JSON.parse(JSON.stringify(nodes)),
+          edges: JSON.parse(JSON.stringify(edges)),
+          selectedNodeId
+        };
+      }
+      lastDraggedNodeRef.current = nodeId;
+    }
+    
     setNodes(prev =>
       prev.map(node =>
         node.id === nodeId
@@ -43,17 +151,39 @@ export const useProject = () => {
           : node
       )
     );
-  }, []);
+    
+    // Save state after position update completes (when drag ends)
+    // Use a small delay to ensure state update is complete
+    if (dragStartStateRef.current) {
+      const stateToSave = dragStartStateRef.current;
+      dragStartStateRef.current = null;
+      lastDraggedNodeRef.current = null;
+      
+      // Save to history after a brief delay to ensure state is updated
+      setTimeout(() => {
+        setUndoStack(prev => {
+          const newStack = [...prev, stateToSave];
+          if (newStack.length > MAX_HISTORY_SIZE) {
+            return newStack.slice(-MAX_HISTORY_SIZE);
+          }
+          return newStack;
+        });
+        setRedoStack([]);
+      }, 10);
+    }
+  }, [nodes, edges, selectedNodeId]);
 
   const deleteNode = useCallback((nodeId: string) => {
+    saveState();
     setNodes(prev => prev.filter(node => node.id !== nodeId));
     setEdges(prev => prev.filter(edge => edge.source !== nodeId && edge.target !== nodeId));
     if (selectedNodeId === nodeId) {
       setSelectedNodeId(null);
     }
-  }, [selectedNodeId]);
+  }, [selectedNodeId, saveState]);
 
   const addEdge = useCallback((source: string, target: string) => {
+    saveState();
     setEdges(prev => {
       // Check if edge already exists
       const exists = prev.some(
@@ -76,13 +206,18 @@ export const useProject = () => {
       };
       return [...prev, newEdge];
     });
-  }, []);
+  }, [saveState]);
 
   const deleteEdge = useCallback((edgeId: string) => {
+    saveState();
     setEdges(prev => prev.filter(edge => edge.id !== edgeId));
-  }, []);
+  }, [saveState]);
 
   const loadProject = useCallback((project: Project) => {
+    // Clear history when loading a new project
+    setUndoStack([]);
+    setRedoStack([]);
+    
     // Validate and fix nodes to ensure they all have valid positions
     const validatedNodes = (project.nodes || []).map(node => {
       // Ensure position exists and is valid
@@ -110,10 +245,11 @@ export const useProject = () => {
   }, [nodes, edges]);
 
   const clearProject = useCallback(() => {
+    saveState();
     setNodes([]);
     setEdges([]);
     setSelectedNodeId(null);
-  }, []);
+  }, [saveState]);
 
   type DiagramOperation =
     | { op: "add_node"; payload: { type: string; position?: { x: number; y: number }; data?: Partial<Node['data']>; id?: string; name?: string }; metadata?: { x: number; y: number } }
@@ -168,6 +304,11 @@ export const useProject = () => {
   }, []);
 
   const applyOperations = useCallback((ops: DiagramOperation[]) => {
+    // Save state before applying operations (batch operation)
+    if (ops.length > 0) {
+      saveState();
+    }
+    
     // First pass: add all nodes and edges
     const nodesWithoutPositions: string[] = [];
     
@@ -346,21 +487,32 @@ export const useProject = () => {
         });
       }, 0);
     }
-  }, [selectedNodeId, calculateNodeLevels]);
+  }, [selectedNodeId, calculateNodeLevels, saveState]);
 
   const optimizeLayoutFunction = useCallback((
     algorithm: LayoutAlgorithm = 'auto',
     options?: any
   ) => {
+    // Save state before layout optimization
+    saveState();
+    
     const optimizedNodes = optimizeLayout(nodes, edges, algorithm, options);
     
-    // Update all node positions
+    // Update all node positions (batch update, don't save state for each)
+    isUndoRedoOperation.current = true;
     optimizedNodes.forEach(node => {
-      updateNodePosition(node.id, node.position);
+      setNodes(prev =>
+        prev.map(n =>
+          n.id === node.id
+            ? { ...n, position: node.position }
+            : n
+        )
+      );
     });
+    isUndoRedoOperation.current = false;
     
     return optimizedNodes;
-  }, [nodes, edges, updateNodePosition]);
+  }, [nodes, edges, saveState]);
 
   return {
     nodes,
@@ -377,7 +529,11 @@ export const useProject = () => {
     getProject,
     clearProject,
     applyOperations,
-    optimizeLayout: optimizeLayoutFunction
+    optimizeLayout: optimizeLayoutFunction,
+    undo,
+    redo,
+    canUndo,
+    canRedo
   };
 };
 

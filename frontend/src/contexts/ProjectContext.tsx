@@ -17,6 +17,10 @@ interface ProjectContextType {
   clearProject: ReturnType<typeof useProject>['clearProject'];
   applyOperations: ReturnType<typeof useProject>['applyOperations'];
   optimizeLayout: ReturnType<typeof useProject>['optimizeLayout'];
+  undo: ReturnType<typeof useProject>['undo'];
+  redo: ReturnType<typeof useProject>['redo'];
+  canUndo: ReturnType<typeof useProject>['canUndo'];
+  canRedo: ReturnType<typeof useProject>['canRedo'];
 }
 
 const ProjectContext = createContext<ProjectContextType | undefined>(undefined);
