@@ -21,6 +21,408 @@ except Exception as e:
 
 router = APIRouter()
 
+# All available node types that can be created in the diagram
+# Each node type includes its ID, label, description, and common use cases
+# This list must stay in sync with frontend/src/nodes/nodeTypes.ts
+AVAILABLE_NODE_TYPES = [
+    {
+        "id": "web-server",
+        "label": "Web Server",
+        "description": "Serves HTTP/HTTPS requests and hosts web applications. Handles incoming client requests and serves responses.",
+        "use_cases": [
+            "Hosting web applications and APIs",
+            "Serving static content",
+            "Handling HTTP/HTTPS requests",
+            "Application servers for business logic"
+        ]
+    },
+    {
+        "id": "database",
+        "label": "Database",
+        "description": "Stores and manages structured data persistently. Provides data persistence and query capabilities.",
+        "use_cases": [
+            "Storing application data",
+            "User data and authentication",
+            "Transaction records",
+            "Relational or NoSQL data storage"
+        ]
+    },
+    {
+        "id": "worker",
+        "label": "Worker",
+        "description": "Background processing service that handles asynchronous tasks and long-running operations.",
+        "use_cases": [
+            "Background job processing",
+            "Image/video processing",
+            "Data transformation tasks",
+            "Scheduled tasks and cron jobs"
+        ]
+    },
+    {
+        "id": "cache",
+        "label": "Cache",
+        "description": "High-speed temporary storage for frequently accessed data to improve performance and reduce latency.",
+        "use_cases": [
+            "Caching database query results",
+            "Session storage",
+            "API response caching",
+            "Reducing database load"
+        ]
+    },
+    {
+        "id": "queue",
+        "label": "Queue",
+        "description": "Message queue system that enables asynchronous communication and task distribution between services.",
+        "use_cases": [
+            "Task queuing and processing",
+            "Decoupling services",
+            "Handling peak loads",
+            "Reliable message delivery"
+        ]
+    },
+    {
+        "id": "storage",
+        "label": "Storage",
+        "description": "Object storage or file storage system for storing files, media, and unstructured data.",
+        "use_cases": [
+            "File storage (images, documents)",
+            "Object storage (S3-style)",
+            "Media files and assets",
+            "Backup and archival storage"
+        ]
+    },
+    {
+        "id": "third-party-api",
+        "label": "Third-party API",
+        "description": "External service or API that your system integrates with. Represents dependencies on external services.",
+        "use_cases": [
+            "Payment processing APIs",
+            "Authentication services (OAuth)",
+            "Email/SMS services",
+            "External data providers"
+        ]
+    },
+    {
+        "id": "compute-node",
+        "label": "Compute Node",
+        "description": "Generic compute resource for processing tasks, running containers, or executing code.",
+        "use_cases": [
+            "Container orchestration nodes",
+            "Serverless function execution",
+            "Batch processing",
+            "General-purpose compute resources"
+        ]
+    },
+    {
+        "id": "load-balancer",
+        "label": "Load Balancer",
+        "description": "Distributes incoming network traffic across multiple servers to ensure high availability and performance.",
+        "use_cases": [
+            "Distributing traffic across web servers",
+            "High availability and redundancy",
+            "SSL termination",
+            "Traffic routing and health checks"
+        ]
+    },
+    {
+        "id": "message-broker",
+        "label": "Message Broker",
+        "description": "Middleware that enables communication between distributed systems using publish-subscribe or message queue patterns.",
+        "use_cases": [
+            "Event-driven architectures",
+            "Microservices communication",
+            "Real-time messaging",
+            "Pub/sub messaging patterns"
+        ]
+    },
+    {
+        "id": "cdn",
+        "label": "CDN",
+        "description": "Content Delivery Network that caches and serves content from edge locations close to users for faster delivery.",
+        "use_cases": [
+            "Serving static assets globally",
+            "Reducing latency for users",
+            "Offloading traffic from origin servers",
+            "Video streaming and media delivery"
+        ]
+    },
+    {
+        "id": "monitoring",
+        "label": "Monitoring Service",
+        "description": "Service that collects metrics, logs, and traces to monitor system health, performance, and availability.",
+        "use_cases": [
+            "Application performance monitoring",
+            "Infrastructure metrics",
+            "Log aggregation and analysis",
+            "Alerting and incident management"
+        ]
+    },
+    {
+        "id": "api-gateway",
+        "label": "API Gateway",
+        "description": "Single entry point for API requests that handles routing, authentication, rate limiting, and request/response transformation.",
+        "use_cases": [
+            "API request routing and load balancing",
+            "Authentication and authorization",
+            "Rate limiting and throttling",
+            "Request/response transformation"
+        ]
+    },
+    {
+        "id": "dns",
+        "label": "DNS",
+        "description": "Domain Name System service that translates domain names to IP addresses and manages DNS records.",
+        "use_cases": [
+            "Domain name resolution",
+            "Load balancing via DNS",
+            "CDN routing",
+            "Service discovery"
+        ]
+    },
+    {
+        "id": "vpc-network",
+        "label": "VPC / Network",
+        "description": "Virtual Private Cloud or network infrastructure that provides isolated network environments for resources.",
+        "use_cases": [
+            "Network isolation and security",
+            "Private network segments",
+            "Subnet management",
+            "Network routing and connectivity"
+        ]
+    },
+    {
+        "id": "vpn-link",
+        "label": "VPN / Private Link",
+        "description": "Virtual Private Network or private link that provides secure, encrypted connections between networks or services.",
+        "use_cases": [
+            "Secure remote access",
+            "Site-to-site connectivity",
+            "Private service connections",
+            "Encrypted data transmission"
+        ]
+    },
+    {
+        "id": "auth-service",
+        "label": "Auth Service",
+        "description": "Authentication service that handles user login, session management, and authentication tokens.",
+        "use_cases": [
+            "User authentication",
+            "Session management",
+            "Token generation and validation",
+            "Single sign-on (SSO)"
+        ]
+    },
+    {
+        "id": "identity-provider",
+        "label": "Identity Provider (IdP)",
+        "description": "Identity provider that manages user identities and provides authentication services (e.g., OAuth, SAML).",
+        "use_cases": [
+            "OAuth/OIDC authentication",
+            "SAML-based SSO",
+            "Social login integration",
+            "Centralized identity management"
+        ]
+    },
+    {
+        "id": "secrets-manager",
+        "label": "Secrets Manager",
+        "description": "Service for securely storing and managing secrets, API keys, passwords, and certificates.",
+        "use_cases": [
+            "API key management",
+            "Password and credential storage",
+            "Certificate management",
+            "Secure configuration storage"
+        ]
+    },
+    {
+        "id": "waf",
+        "label": "Web Application Firewall",
+        "description": "Security service that filters and monitors HTTP/HTTPS traffic to protect web applications from attacks.",
+        "use_cases": [
+            "SQL injection prevention",
+            "XSS attack protection",
+            "DDoS mitigation",
+            "Rate limiting and bot protection"
+        ]
+    },
+    {
+        "id": "search-engine",
+        "label": "Search Engine",
+        "description": "Search service that provides full-text search capabilities for applications and data.",
+        "use_cases": [
+            "Full-text search",
+            "Product search",
+            "Document search",
+            "Real-time search indexing"
+        ]
+    },
+    {
+        "id": "data-warehouse",
+        "label": "Data Warehouse",
+        "description": "Centralized repository for storing and analyzing large volumes of structured data for business intelligence.",
+        "use_cases": [
+            "Business intelligence and analytics",
+            "Data aggregation and reporting",
+            "Historical data analysis",
+            "ETL data processing"
+        ]
+    },
+    {
+        "id": "stream-processor",
+        "label": "Stream Processor",
+        "description": "Service that processes continuous streams of data in real-time for analytics and event processing.",
+        "use_cases": [
+            "Real-time data processing",
+            "Event stream processing",
+            "Real-time analytics",
+            "Streaming ETL pipelines"
+        ]
+    },
+    {
+        "id": "etl-job",
+        "label": "ETL / Batch Job",
+        "description": "Extract, Transform, Load job that processes data in batches for data integration and transformation.",
+        "use_cases": [
+            "Data integration",
+            "Batch data processing",
+            "Data transformation pipelines",
+            "Scheduled data migrations"
+        ]
+    },
+    {
+        "id": "scheduler",
+        "label": "Scheduler / Cron",
+        "description": "Service that schedules and executes tasks, jobs, or workflows at specified times or intervals.",
+        "use_cases": [
+            "Scheduled task execution",
+            "Cron job management",
+            "Workflow scheduling",
+            "Periodic data processing"
+        ]
+    },
+    {
+        "id": "serverless-function",
+        "label": "Serverless Function",
+        "description": "Event-driven compute service that runs code in response to events without managing servers.",
+        "use_cases": [
+            "Event-driven processing",
+            "API endpoints",
+            "Background task processing",
+            "Microservices architecture"
+        ]
+    },
+    {
+        "id": "logging-service",
+        "label": "Logging Service",
+        "description": "Service that collects, stores, and analyzes application and system logs for debugging and monitoring.",
+        "use_cases": [
+            "Centralized log collection",
+            "Log aggregation and storage",
+            "Log analysis and search",
+            "Debugging and troubleshooting"
+        ]
+    },
+    {
+        "id": "alerting-service",
+        "label": "Alerting / Incident Management",
+        "description": "Service that monitors system health and sends alerts or manages incidents when issues are detected.",
+        "use_cases": [
+            "System health monitoring",
+            "Alert notification",
+            "Incident management",
+            "On-call management"
+        ]
+    },
+    {
+        "id": "status-page",
+        "label": "Status Page / Health Check",
+        "description": "Public status page or health check service that displays system availability and service status.",
+        "use_cases": [
+            "Public service status",
+            "Health check endpoints",
+            "Service availability monitoring",
+            "Incident communication"
+        ]
+    },
+    {
+        "id": "orchestrator",
+        "label": "Workflow Orchestrator",
+        "description": "Service that orchestrates and manages complex workflows, pipelines, and multi-step processes.",
+        "use_cases": [
+            "Workflow management",
+            "Pipeline orchestration",
+            "Multi-step process coordination",
+            "Distributed task coordination"
+        ]
+    },
+    {
+        "id": "notification-service",
+        "label": "Notification Service",
+        "description": "Service that sends notifications to users via various channels (push, in-app, etc.).",
+        "use_cases": [
+            "Push notifications",
+            "In-app notifications",
+            "User alerts",
+            "Multi-channel notifications"
+        ]
+    },
+    {
+        "id": "email-service",
+        "label": "Email Service",
+        "description": "Service that handles email sending, receiving, and management for applications.",
+        "use_cases": [
+            "Transactional emails",
+            "Email marketing",
+            "Email delivery",
+            "Email templates and management"
+        ]
+    },
+    {
+        "id": "webhook-endpoint",
+        "label": "Webhook Endpoint",
+        "description": "HTTP endpoint that receives webhook callbacks from external services for event-driven integrations.",
+        "use_cases": [
+            "Third-party service callbacks",
+            "Event-driven integrations",
+            "Real-time data synchronization",
+            "External service notifications"
+        ]
+    },
+    {
+        "id": "web-client",
+        "label": "Web Client",
+        "description": "Web browser or web application client that interacts with backend services.",
+        "use_cases": [
+            "Web application frontend",
+            "Browser-based clients",
+            "User interface",
+            "Client-side applications"
+        ]
+    },
+    {
+        "id": "mobile-app",
+        "label": "Mobile App",
+        "description": "Mobile application (iOS, Android) that interacts with backend services via APIs.",
+        "use_cases": [
+            "Mobile application frontend",
+            "Native mobile apps",
+            "Mobile user interface",
+            "Cross-platform mobile apps"
+        ]
+    },
+    {
+        "id": "admin-panel",
+        "label": "Admin Panel",
+        "description": "Administrative interface for managing and configuring system components and settings.",
+        "use_cases": [
+            "System administration",
+            "Configuration management",
+            "User management",
+            "Dashboard and monitoring"
+        ]
+    }
+]
+
 class ChatRequest(BaseModel):
     projectId: str
     message: str
@@ -141,6 +543,16 @@ You MUST respond with a JSON object in this exact format:
     {{"op": "add_edge", "payload": {{"source": "web-server-1", "target": "database-1"}}}}
   ]
 }}
+
+IMPORTANT: When positioning nodes, use appropriate spacing:
+- Horizontal spacing: 250 pixels between nodes (e.g., x: 100, 350, 600, 850)
+- Vertical spacing: 250 pixels between rows (e.g., y: 100, 350, 600, 850)
+- Arrange nodes in a grid layout with 4 nodes per row
+- Start positions: x starts at 100, y starts at 100
+- Example positions for multiple nodes:
+  - Row 1: (100, 100), (350, 100), (600, 100), (850, 100)
+  - Row 2: (100, 350), (350, 350), (600, 350), (850, 350)
+  - Row 3: (100, 600), (350, 600), (600, 600), (850, 600)
 
 Available operations:
 - "add_node": {{"op": "add_node", "payload": {{"id": string (REQUIRED - use a descriptive ID like "web-server-1", "database-1", etc.), "type": string, "position": {{"x": number, "y": number}}, "data": {{"name": string, "description": string, "attributes": object}}}}, "metadata": {{"x": number, "y": number}}}}

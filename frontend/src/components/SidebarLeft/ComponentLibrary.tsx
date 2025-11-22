@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { NODE_TYPES } from '../../nodes/nodeTypes';
-import { ComponentItem } from './ComponentItem';
+import { NODE_TYPES, NODE_CATEGORIES } from '../../nodes/nodeTypes';
+import { CategoryFolder } from './CategoryFolder';
 import { FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 
 interface ComponentLibraryProps {
@@ -29,6 +29,12 @@ export function ComponentLibrary({ isCollapsed = false, onToggleCollapse }: Comp
     );
   }
 
+  // Group nodes by category
+  const nodesByCategory = NODE_CATEGORIES.map(category => ({
+    ...category,
+    nodes: NODE_TYPES.filter(node => node.category === category.id)
+  })).filter(category => category.nodes.length > 0);
+
   return (
     <div className="h-full bg-gray-50 border-r border-gray-200 p-4 overflow-y-auto relative">
       <div className="flex items-center justify-between mb-4">
@@ -41,9 +47,14 @@ export function ComponentLibrary({ isCollapsed = false, onToggleCollapse }: Comp
           <FaChevronLeft className="w-4 h-4 text-gray-600" />
         </button>
       </div>
-      <div className="space-y-2">
-        {NODE_TYPES.map((nodeType) => (
-          <ComponentItem key={nodeType.id} nodeType={nodeType} />
+      <div className="space-y-1">
+        {nodesByCategory.map((category) => (
+          <CategoryFolder
+            key={category.id}
+            categoryId={category.id}
+            categoryLabel={category.label}
+            nodes={category.nodes}
+          />
         ))}
       </div>
     </div>
