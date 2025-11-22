@@ -116,18 +116,27 @@ export const useProject = () => {
     | { op: "delete_edge"; payload: { id: string } };
 
   const applyOperations = useCallback((ops: DiagramOperation[]) => {
+    // Calculate spacing for nodes - use grid layout with appropriate spacing
+    const NODE_SPACING = 250; // Horizontal and vertical spacing between nodes
+    const START_X = 100; // Starting X position
+    const START_Y = 100; // Starting Y position
+    const NODES_PER_ROW = 4; // Number of nodes per row before wrapping
+    
+    // Get current node count to calculate starting position for new nodes
+    let newNodeCount = 0;
+    
     for (const op of ops) {
       switch (op.op) {
         case "add_node":
-          // Extract position from metadata if not in payload, or use default
+          // Extract position from metadata if not in payload, or use calculated position
           let position: { x: number; y: number };
-          if (op.payload.position) {
+          if (op.payload.position && typeof op.payload.position.x === 'number' && typeof op.payload.position.y === 'number') {
             position = op.payload.position;
           } else if (op.metadata && typeof op.metadata.x === 'number' && typeof op.metadata.y === 'number') {
             position = { x: op.metadata.x, y: op.metadata.y };
           } else {
-            // Default position if none provided
-            position = { x: Math.random() * 400, y: Math.random() * 400 };
+            // Position will be calculated in setNodes callback
+            position = { x: 0, y: 0 }; // Placeholder
           }
           
           // Extract type - could be in payload.type or payload.data.type
@@ -150,19 +159,41 @@ export const useProject = () => {
               ...op.payload.data
             }
           };
-          // Ensure newNode has valid position before adding
-          if (!newNode.position || typeof newNode.position.x !== 'number' || typeof newNode.position.y !== 'number') {
-            newNode.position = { x: Math.random() * 400, y: Math.random() * 400 };
-          }
+          // Calculate position if not provided or invalid
           setNodes(prev => {
             // Also validate existing nodes to prevent errors
-            const validatedPrev = prev.map(node => {
+            const validatedPrev = prev.map((node, idx) => {
               if (!node.position || typeof node.position.x !== 'number' || typeof node.position.y !== 'number') {
-                return { ...node, position: { x: Math.random() * 400, y: Math.random() * 400 } };
+                // Use grid spacing for fallback based on node index
+                const fallbackRow = Math.floor(idx / NODES_PER_ROW);
+                const fallbackCol = idx % NODES_PER_ROW;
+                return { 
+                  ...node, 
+                  position: {
+                    x: START_X + (fallbackCol * NODE_SPACING),
+                    y: START_Y + (fallbackRow * NODE_SPACING)
+                  }
+                };
               }
               return node;
             });
-            return [...validatedPrev, newNode];
+            
+            // Calculate position for new node if not provided or invalid
+            let finalPosition = position;
+            if (!finalPosition || (finalPosition.x === 0 && finalPosition.y === 0) || 
+                typeof finalPosition.x !== 'number' || typeof finalPosition.y !== 'number') {
+              const totalNodeCount = validatedPrev.length + newNodeCount;
+              const row = Math.floor(totalNodeCount / NODES_PER_ROW);
+              const col = totalNodeCount % NODES_PER_ROW;
+              finalPosition = {
+                x: START_X + (col * NODE_SPACING),
+                y: START_Y + (row * NODE_SPACING)
+              };
+            }
+            
+            newNodeCount++;
+            
+            return [...validatedPrev, { ...newNode, position: finalPosition }];
           });
           break;
         case "update_node":
