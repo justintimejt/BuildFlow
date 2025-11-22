@@ -15,6 +15,13 @@ class ChatRequest(BaseModel):
 
 @router.post("/chat")
 async def chat(req: ChatRequest):
+    # Check if Supabase is configured
+    if supabase is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Supabase is not configured. Please set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in backend/.env"
+        )
+    
     # 1) Load diagram context
     project_res = supabase.table("projects").select("diagram_json").eq("id", req.projectId).single().execute()
 

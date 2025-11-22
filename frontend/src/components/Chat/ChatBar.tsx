@@ -12,8 +12,8 @@ export function ChatBar({ projectId }: ChatBarProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Only initialize chat if projectId is available
-  // Hook will only be called if projectId exists (component returns null otherwise)
-  const { messages, isLoading, sendMessage } = useChatWithGemini(projectId!);
+  // Use dummy projectId to prevent hook errors, but disable functionality
+  const { messages, isLoading, sendMessage } = useChatWithGemini(projectId || 'dummy');
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -46,10 +46,8 @@ export function ChatBar({ projectId }: ChatBarProps) {
     }
   };
 
-  // Don't render if no projectId (Supabase not configured)
-  if (!projectId) {
-    return null;
-  }
+  // Show chat bar always, but disable if no projectId
+  const isDisabled = !projectId;
 
   return (
     <div
@@ -82,53 +80,69 @@ export function ChatBar({ projectId }: ChatBarProps) {
       {/* Messages Area (only visible when expanded) */}
       {isExpanded && (
         <div className="flex-1 overflow-y-auto p-4 space-y-3 h-[200px] bg-white">
-          {messages.length === 0 && (
+          {isDisabled ? (
             <div className="text-center text-gray-500 mt-8">
-              <p className="text-sm">Start chatting with ArchCoach to modify your diagram.</p>
-              <p className="text-xs mt-2 text-gray-400">Example: "Add a database node"</p>
-            </div>
-          )}
-
-          {messages.map((message) => (
-            <div
-              key={message.id}
-              className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-            >
-              <div
-                className={`max-w-[75%] rounded-lg px-3 py-2 ${
-                  message.role === 'user'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-800'
-                }`}
-              >
-                <div className="text-xs font-medium mb-1 opacity-75">
-                  {message.role === 'user' ? 'You' : 'ArchCoach'}
-                </div>
-                {message.role === 'assistant' ? (
-                  <pre className="text-xs whitespace-pre-wrap font-mono break-words">
-                    {message.content}
-                  </pre>
-                ) : (
-                  <div className="text-sm break-words">{message.content}</div>
-                )}
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 max-w-md mx-auto">
+                <p className="text-sm font-medium text-yellow-800 mb-2">⚠️ Supabase Configuration Required</p>
+                <p className="text-xs text-yellow-700">
+                  The chat feature requires Supabase to be configured. Please set up your Supabase credentials in <code className="bg-yellow-100 px-1 rounded">frontend/.env</code>.
+                </p>
+                <p className="text-xs text-yellow-600 mt-2">
+                  See <code className="bg-yellow-100 px-1 rounded">SETUP_GUIDE.md</code> for instructions.
+                </p>
               </div>
             </div>
-          ))}
-
-          {isLoading && (
-            <div className="flex justify-start">
-              <div className="bg-gray-100 rounded-lg px-3 py-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
-                  <span className="text-xs text-gray-600 ml-2">Thinking...</span>
+          ) : (
+            <>
+              {messages.length === 0 && (
+                <div className="text-center text-gray-500 mt-8">
+                  <p className="text-sm">Start chatting with ArchCoach to modify your diagram.</p>
+                  <p className="text-xs mt-2 text-gray-400">Example: "Add a database node"</p>
                 </div>
-              </div>
-            </div>
-          )}
+              )}
 
-          <div ref={messagesEndRef} />
+              {messages.map((message) => (
+                <div
+                  key={message.id}
+                  className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div
+                    className={`max-w-[75%] rounded-lg px-3 py-2 ${
+                      message.role === 'user'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 text-gray-800'
+                    }`}
+                  >
+                    <div className="text-xs font-medium mb-1 opacity-75">
+                      {message.role === 'user' ? 'You' : 'ArchCoach'}
+                    </div>
+                    {message.role === 'assistant' ? (
+                      <pre className="text-xs whitespace-pre-wrap font-mono break-words">
+                        {message.content}
+                      </pre>
+                    ) : (
+                      <div className="text-sm break-words">{message.content}</div>
+                    )}
+                  </div>
+                </div>
+              ))}
+
+              {isLoading && (
+                <div className="flex justify-start">
+                  <div className="bg-gray-100 rounded-lg px-3 py-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                      <span className="text-xs text-gray-600 ml-2">Thinking...</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div ref={messagesEndRef} />
+            </>
+          )}
         </div>
       )}
 
@@ -146,11 +160,13 @@ export function ChatBar({ projectId }: ChatBarProps) {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={
-              isExpanded
+              isDisabled
+                ? "Configure Supabase to enable chat..."
+                : isExpanded
                 ? "Ask ArchCoach to modify your diagram..."
                 : "Type a message..."
             }
-            disabled={isLoading}
+            disabled={isLoading || isDisabled}
             className={`
               flex-1 px-3 py-2 border border-gray-300 rounded-md
               focus:outline-none focus:ring-2 focus:ring-blue-500
@@ -161,7 +177,7 @@ export function ChatBar({ projectId }: ChatBarProps) {
           />
           <button
             type="submit"
-            disabled={isLoading || !input.trim() || !projectId}
+            disabled={isLoading || !input.trim() || isDisabled}
             className={`
               px-4 py-2 bg-blue-600 text-white rounded-md
               hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed

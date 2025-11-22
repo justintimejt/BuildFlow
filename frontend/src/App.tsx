@@ -43,10 +43,8 @@ function AppContent() {
         <div className="w-80 flex-shrink-0">
           <InspectorPanel selectedNodeId={selectedNodeId} />
         </div>
-        {/* Chat Bar at bottom - only shows when projectId is available */}
-        {projectId && (
-          <ChatBar projectId={projectId} />
-        )}
+        {/* Chat Bar at bottom - shows always, but disabled if no projectId */}
+        <ChatBar projectId={projectId} />
       </div>
     </div>
   );
