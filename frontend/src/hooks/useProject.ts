@@ -76,7 +76,19 @@ export const useProject = () => {
   }, []);
 
   const loadProject = useCallback((project: Project) => {
-    setNodes(project.nodes || []);
+    // Validate and fix nodes to ensure they all have valid positions
+    const validatedNodes = (project.nodes || []).map(node => {
+      // Ensure position exists and is valid
+      if (!node.position || typeof node.position.x !== 'number' || typeof node.position.y !== 'number') {
+        return {
+          ...node,
+          position: { x: Math.random() * 400, y: Math.random() * 400 }
+        };
+      }
+      return node;
+    });
+    
+    setNodes(validatedNodes);
     setEdges(project.edges || []);
     setSelectedNodeId(null);
   }, []);
@@ -97,28 +109,61 @@ export const useProject = () => {
   }, []);
 
   type DiagramOperation =
-    | { op: "add_node"; payload: { type: string; position: { x: number; y: number }; data?: Partial<Node['data']> } }
+    | { op: "add_node"; payload: { type: string; position?: { x: number; y: number }; data?: Partial<Node['data']>; id?: string; name?: string }; metadata?: { x: number; y: number } }
     | { op: "update_node"; payload: { id: string; data: Partial<Node['data']> } }
     | { op: "delete_node"; payload: { id: string } }
-    | { op: "add_edge"; payload: { source: string; target: string; type?: string } }
+    | { op: "add_edge"; payload: { source: string; target: string; type?: string; id?: string; data?: { label?: string } } }
     | { op: "delete_edge"; payload: { id: string } };
 
   const applyOperations = useCallback((ops: DiagramOperation[]) => {
     for (const op of ops) {
       switch (op.op) {
         case "add_node":
+          // Extract position from metadata if not in payload, or use default
+          let position: { x: number; y: number };
+          if (op.payload.position) {
+            position = op.payload.position;
+          } else if (op.metadata && typeof op.metadata.x === 'number' && typeof op.metadata.y === 'number') {
+            position = { x: op.metadata.x, y: op.metadata.y };
+          } else {
+            // Default position if none provided
+            position = { x: Math.random() * 400, y: Math.random() * 400 };
+          }
+          
+          // Extract type - could be in payload.type or payload.data.type
+          const nodeType = op.payload.type || (op.payload.data as any)?.type || 'default';
+          
+          // Extract name - could be in payload.name or payload.data.name
+          const nodeName = op.payload.name || op.payload.data?.name || getDefaultNodeName(nodeType);
+          
+          // Use provided ID or generate new one
+          const nodeId = op.payload.id || uuidv4();
+          
           const newNode: Node = {
-            id: uuidv4(),
-            type: op.payload.type,
-            position: op.payload.position,
+            id: nodeId,
+            type: nodeType,
+            position,
             data: {
-              name: getDefaultNodeName(op.payload.type),
-              description: '',
-              attributes: {},
+              name: nodeName,
+              description: op.payload.data?.description || '',
+              attributes: op.payload.data?.attributes || {},
               ...op.payload.data
             }
           };
-          setNodes(prev => [...prev, newNode]);
+          // Ensure newNode has valid position before adding
+          if (!newNode.position || typeof newNode.position.x !== 'number' || typeof newNode.position.y !== 'number') {
+            newNode.position = { x: Math.random() * 400, y: Math.random() * 400 };
+          }
+          setNodes(prev => {
+            // Also validate existing nodes to prevent errors
+            const validatedPrev = prev.map(node => {
+              if (!node.position || typeof node.position.x !== 'number' || typeof node.position.y !== 'number') {
+                return { ...node, position: { x: Math.random() * 400, y: Math.random() * 400 } };
+              }
+              return node;
+            });
+            return [...validatedPrev, newNode];
+          });
           break;
         case "update_node":
           setNodes(prev =>
@@ -144,10 +189,11 @@ export const useProject = () => {
             );
             if (exists) return prev;
             const newEdge: Edge = {
-              id: uuidv4(),
+              id: op.payload.id || uuidv4(),
               source: op.payload.source,
               target: op.payload.target,
-              type: op.payload.type || 'smoothstep'
+              type: op.payload.type || 'smoothstep',
+              label: op.payload.data?.label
             };
             return [...prev, newEdge];
           });

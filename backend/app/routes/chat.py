@@ -127,13 +127,18 @@ Recent chat:
 {history_text}
 
 User will send a new instruction. You MUST respond with a JSON array
-of diagram edit operations ONLY. Each operation must have:
+of diagram edit operations ONLY. Each operation must be a single JSON object with:
 - "op": one of "add_node", "update_node", "delete_node", "add_edge", "delete_edge"
 - "payload": the data needed to perform the operation.
+- "metadata": (optional) an object with positioning info like {{"x": 0, "y": 0}}
 
-CRITICAL: Return ONLY valid JSON. Do NOT wrap it in markdown code blocks (```json or ```).
-Do NOT include explanations, comments, or any text outside the JSON array.
-Return the JSON array directly, starting with [ and ending with ].
+CRITICAL FORMATTING RULES:
+1. Return ONLY valid JSON array. Do NOT wrap it in markdown code blocks (```json or ```).
+2. Do NOT include explanations, comments, or any text outside the JSON array.
+3. Each operation must be a complete object. The "metadata" property MUST be INSIDE each operation object, not as a separate array element.
+4. Example CORRECT format: [{{"op": "add_node", "payload": {{...}}, "metadata": {{"x": 0, "y": 0}}}}, ...]
+5. Example WRONG format: [{{"op": "add_node", "payload": {{...}}}}, "metadata": {{"x": 0, "y": 0}}, ...]
+6. Return the JSON array directly, starting with [ and ending with ].
 """
 
         # 4) Call Gemini API
