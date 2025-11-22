@@ -7,11 +7,13 @@ import { useTemplates } from '../hooks/useTemplates';
 import { saveProjectToStorage } from '../utils/storage';
 import { Project } from '../types';
 import { EmptyState, ProjectGrid, ProjectList, CreateProjectModal } from '../components/Dashboard';
+import { Input } from '@/components/ui/input';
 
 export function DashboardPage() {
   const navigate = useNavigate();
   const {
     projects,
+    allProjects,
     viewMode,
     setViewMode,
     sortBy,
@@ -87,7 +89,15 @@ export function DashboardPage() {
           <div>
             <h1 className="text-2xl font-bold text-gray-800">Projects</h1>
             <p className="text-sm text-gray-500 mt-1">
-              {projects.length} {projects.length === 1 ? 'project' : 'projects'}
+              {searchQuery ? (
+                <>
+                  {projects.length} of {allProjects.length} {projects.length === 1 ? 'project' : 'projects'}
+                </>
+              ) : (
+                <>
+                  {projects.length} {projects.length === 1 ? 'project' : 'projects'}
+                </>
+              )}
             </p>
           </div>
           <button
@@ -101,19 +111,19 @@ export function DashboardPage() {
       </header>
 
       {/* Toolbar */}
-      {projects.length > 0 && (
+      {allProjects.length > 0 && (
         <div className="bg-white border-b border-gray-200 px-6 py-3">
           <div className="flex items-center justify-between">
             {/* Search */}
             <div className="flex-1 max-w-md">
               <div className="relative">
-                <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                <input
+                <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground z-10" />
+                <Input
                   type="text"
                   placeholder="Search projects..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="pl-10"
                 />
               </div>
             </div>

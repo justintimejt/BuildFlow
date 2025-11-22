@@ -94,6 +94,7 @@ export const useDashboard = () => {
 
   return {
     projects: filteredProjects,
+    allProjects: projects, // Return original unfiltered projects
     templates,
     viewMode,
     setViewMode,
