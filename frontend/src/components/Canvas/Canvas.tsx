@@ -128,9 +128,35 @@ export function Canvas({ onNodeSelect, selectedNodeId }: CanvasProps) {
   }, []);
 
   // Nodes are already in React Flow format with type set
+  // Use useEffect to ensure dimensions are set after mount
+  useEffect(() => {
+    if (reactFlowWrapper.current) {
+      const rect = reactFlowWrapper.current.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) {
+        // Force a re-render if dimensions are zero
+        setTimeout(() => {
+          if (reactFlowWrapper.current) {
+            reactFlowWrapper.current.style.width = '100%';
+            reactFlowWrapper.current.style.height = '100%';
+          }
+        }, 0);
+      }
+    }
+  }, []);
 
   return (
-    <div className="w-full h-full" ref={reactFlowWrapper} id="canvas-container">
+    <div 
+      className="w-full h-full" 
+      ref={reactFlowWrapper} 
+      id="canvas-container"
+      style={{ 
+        width: '100%', 
+        height: '100%', 
+        minHeight: '400px',
+        minWidth: '400px',
+        position: 'relative'
+      }}
+    >
       <ReactFlow
         nodes={nodes}
         edges={edges}

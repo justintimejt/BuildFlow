@@ -10,3 +10,5 @@ export function getOrCreateSessionId(): string {
   return id;
 }
 
+
+

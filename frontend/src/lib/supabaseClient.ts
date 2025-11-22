@@ -54,3 +54,5 @@ export { supabaseClient };
 // Helper to check if Supabase is available
 export const isSupabaseAvailable = () => supabaseClient !== null;
 
+
+
