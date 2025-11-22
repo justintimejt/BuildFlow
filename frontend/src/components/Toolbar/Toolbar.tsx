@@ -1,4 +1,5 @@
 import { useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useProjectContext } from '../../contexts/ProjectContext';
 import { useStorage } from '../../hooks/useStorage';
 import { useExport } from '../../hooks/useExport';
@@ -8,13 +9,14 @@ import { getStoredProjects, updateStoredProjectSupabaseId, updateStoredProjectTh
 import { useReactFlowContext } from '../../contexts/ReactFlowContext';
 import { captureCanvasThumbnail } from '../../utils/canvasCapture';
 import { optimizeThumbnail } from '../../utils/thumbnail';
-import { FaSave, FaFolderOpen, FaDownload, FaFileExport, FaTrash } from 'react-icons/fa';
+import { FaSave, FaFolderOpen, FaDownload, FaFileExport, FaTrash, FaHome } from 'react-icons/fa';
 
 interface ToolbarProps {
   projectId?: string | null;
 }
 
 export function Toolbar({ projectId }: ToolbarProps) {
+  const navigate = useNavigate();
   const { getProject, loadProject, clearProject } = useProjectContext();
   const { reactFlowInstance } = useReactFlowContext();
   const { saveProject, exportToJSON, importFromJSON } = useStorage();
@@ -195,6 +197,17 @@ export function Toolbar({ projectId }: ToolbarProps) {
 
   return (
     <div className="h-14 bg-white border-b border-gray-200 flex items-center gap-2 px-4 shadow-sm">
+      <button
+        onClick={() => navigate('/dashboard')}
+        className="flex items-center justify-center w-10 h-10 text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+        title="Back to Dashboard"
+        aria-label="Back to Dashboard"
+      >
+        <FaHome className="w-5 h-5" />
+      </button>
+      
+      <div className="w-px h-6 bg-gray-300" />
+      
       <button
         onClick={handleSave}
         className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
