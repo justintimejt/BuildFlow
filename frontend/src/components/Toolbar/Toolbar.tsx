@@ -3,6 +3,8 @@ import { useProjectContext } from '../../contexts/ProjectContext';
 import { useStorage } from '../../hooks/useStorage';
 import { useExport } from '../../hooks/useExport';
 import { supabaseClient, isSupabaseAvailable } from '../../lib/supabaseClient';
+import { getOrCreateSessionId } from '../../lib/session';
+import { getStoredProjects, updateStoredProjectSupabaseId } from '../../utils/storage';
 import { FaSave, FaFolderOpen, FaDownload, FaFileExport, FaTrash } from 'react-icons/fa';
 
 interface ToolbarProps {
@@ -17,28 +19,83 @@ export function Toolbar({ projectId }: ToolbarProps) {
 
   const handleSave = async () => {
     const project = getProject();
-    const name = prompt('Enter project name (optional):') || undefined;
-    try {
-      // Save to localStorage
-      saveProject(project, name);
+    
+    // Use projectId from props, or from project.id, or from URL
+    const currentProjectId = projectId || project.id;
+    
+    // If we have a projectId, use the existing name or prompt for a new one
+    // If we don't have a projectId, prompt for a name
+    let name: string | undefined;
+    if (currentProjectId) {
+      // Get current project name from storage
+      const { getStoredProjects } = await import('../../utils/storage');
+      const projects = getStoredProjects();
+      const currentProject = projects.find(p => p.id === currentProjectId);
+      const currentName = currentProject?.name || project.name;
       
-      // If Supabase is available and we have a projectId, also update Supabase
-      if (name && projectId && isSupabaseAvailable() && supabaseClient) {
+      const newName = prompt('Enter project name (optional):', currentName);
+      name = newName || currentName;
+    } else {
+      name = prompt('Enter project name (optional):') || undefined;
+    }
+    
+    try {
+      // Save to localStorage - pass projectId to update existing project
+      const savedId = saveProject(project, name, currentProjectId || undefined);
+      
+      // If Supabase is available, sync to Supabase
+      if (savedId && isSupabaseAvailable() && supabaseClient) {
         try {
+          const projects = getStoredProjects();
+          const storedProject = projects.find(p => p.id === savedId);
+          const supabaseId = storedProject?.supabaseId;
+          
           const projectWithName = {
             ...project,
-            name: name
+            id: savedId,
+            name: name || project.name
           };
-          await supabaseClient
-            .from("projects")
-            .update({
-              name: name,
-              diagram_json: projectWithName,
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", projectId);
+          
+          const sessionId = getOrCreateSessionId();
+          
+          if (supabaseId) {
+            // Update existing Supabase project
+            const { error } = await supabaseClient
+              .from("projects")
+              .update({
+                name: name || project.name,
+                diagram_json: projectWithName,
+                updated_at: new Date().toISOString(),
+              })
+              .eq("id", supabaseId);
+            
+            if (error) {
+              console.error("Failed to update project in Supabase:", error);
+              throw error;
+            }
+          } else {
+            // Create new Supabase project
+            const { data: created, error } = await supabaseClient
+              .from("projects")
+              .insert({
+                session_id: sessionId,
+                name: name || project.name || "Untitled Project",
+                diagram_json: projectWithName,
+              })
+              .select("id")
+              .single();
+            
+            if (error) {
+              console.error("Failed to create project in Supabase:", error);
+              throw error;
+            } else if (created?.id) {
+              // Store the Supabase ID in localStorage
+              updateStoredProjectSupabaseId(savedId, created.id);
+            }
+          }
         } catch (error) {
-          console.error("Failed to update project name in Supabase:", error);
+          console.error("Failed to sync project to Supabase:", error);
+          // Don't throw - allow localStorage save to succeed even if Supabase fails
         }
       }
       
