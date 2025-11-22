@@ -25,6 +25,9 @@ export function useChatWithGemini(projectId: string) {
 
     async function loadChatHistory() {
       try {
+        if (!supabaseClient) {
+          throw new Error("Supabase client not initialized");
+        }
         const { data, error } = await supabaseClient
           .from("chat_messages")
           .select("id, role, content, created_at")

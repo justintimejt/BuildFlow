@@ -17,3 +17,47 @@ body {
   overflow: hidden;
 }
 
+/* Animated edge flow effect - creates a directional animation along dashed edges */
+.react-flow__edge.animated .react-flow__edge-path {
+  stroke-dasharray: 8, 4;
+  animation: edgeflow 2s linear infinite;
+}
+
+/* Directional flow animation - flows forward from source to target */
+@keyframes edgeflow {
+  0% {
+    stroke-dashoffset: 12;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Ensure edges have smooth curves and proper styling */
+.react-flow__edge {
+  stroke-width: 2;
+}
+
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke-width: 3;
+}
+
+/* Ensure smooth rendering for all edge paths */
+.react-flow__edge-path {
+  vector-effect: non-scaling-stroke;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Bezier edges - ensure smooth, curvy rendering */
+.react-flow__edge[data-type="bezier"] .react-flow__edge-path {
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: d 0.2s ease;
+}
+
+/* Ensure all edge types render smoothly */
+.react-flow__edge-path {
+  shape-rendering: geometricPrecision;
+}
+

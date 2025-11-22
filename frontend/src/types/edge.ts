@@ -5,5 +5,10 @@ export interface Edge {
   type?: string;
   label?: string;
   animated?: boolean;
+  style?: {
+    strokeDasharray?: string;
+    stroke?: string;
+    strokeWidth?: number;
+  };
 }
 

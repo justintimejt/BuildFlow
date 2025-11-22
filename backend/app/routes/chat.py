@@ -21,143 +21,6 @@ except Exception as e:
 
 router = APIRouter()
 
-# All available node types that can be created in the diagram
-# Each node type includes its ID, label, description, and common use cases
-AVAILABLE_NODE_TYPES = [
-    {
-        "id": "web-server",
-        "label": "Web Server",
-        "description": "Serves HTTP/HTTPS requests and hosts web applications. Handles incoming client requests and serves responses.",
-        "use_cases": [
-            "Hosting web applications and APIs",
-            "Serving static content",
-            "Handling HTTP/HTTPS requests",
-            "Application servers for business logic"
-        ]
-    },
-    {
-        "id": "database",
-        "label": "Database",
-        "description": "Stores and manages structured data persistently. Provides data persistence and query capabilities.",
-        "use_cases": [
-            "Storing application data",
-            "User data and authentication",
-            "Transaction records",
-            "Relational or NoSQL data storage"
-        ]
-    },
-    {
-        "id": "worker",
-        "label": "Worker",
-        "description": "Background processing service that handles asynchronous tasks and long-running operations.",
-        "use_cases": [
-            "Background job processing",
-            "Image/video processing",
-            "Data transformation tasks",
-            "Scheduled tasks and cron jobs"
-        ]
-    },
-    {
-        "id": "cache",
-        "label": "Cache",
-        "description": "High-speed temporary storage for frequently accessed data to improve performance and reduce latency.",
-        "use_cases": [
-            "Caching database query results",
-            "Session storage",
-            "API response caching",
-            "Reducing database load"
-        ]
-    },
-    {
-        "id": "queue",
-        "label": "Queue",
-        "description": "Message queue system that enables asynchronous communication and task distribution between services.",
-        "use_cases": [
-            "Task queuing and processing",
-            "Decoupling services",
-            "Handling peak loads",
-            "Reliable message delivery"
-        ]
-    },
-    {
-        "id": "storage",
-        "label": "Storage",
-        "description": "Object storage or file storage system for storing files, media, and unstructured data.",
-        "use_cases": [
-            "File storage (images, documents)",
-            "Object storage (S3-style)",
-            "Media files and assets",
-            "Backup and archival storage"
-        ]
-    },
-    {
-        "id": "third-party-api",
-        "label": "Third-party API",
-        "description": "External service or API that your system integrates with. Represents dependencies on external services.",
-        "use_cases": [
-            "Payment processing APIs",
-            "Authentication services (OAuth)",
-            "Email/SMS services",
-            "External data providers"
-        ]
-    },
-    {
-        "id": "compute-node",
-        "label": "Compute Node",
-        "description": "Generic compute resource for processing tasks, running containers, or executing code.",
-        "use_cases": [
-            "Container orchestration nodes",
-            "Serverless function execution",
-            "Batch processing",
-            "General-purpose compute resources"
-        ]
-    },
-    {
-        "id": "load-balancer",
-        "label": "Load Balancer",
-        "description": "Distributes incoming network traffic across multiple servers to ensure high availability and performance.",
-        "use_cases": [
-            "Distributing traffic across web servers",
-            "High availability and redundancy",
-            "SSL termination",
-            "Traffic routing and health checks"
-        ]
-    },
-    {
-        "id": "message-broker",
-        "label": "Message Broker",
-        "description": "Middleware that enables communication between distributed systems using publish-subscribe or message queue patterns.",
-        "use_cases": [
-            "Event-driven architectures",
-            "Microservices communication",
-            "Real-time messaging",
-            "Pub/sub messaging patterns"
-        ]
-    },
-    {
-        "id": "cdn",
-        "label": "CDN",
-        "description": "Content Delivery Network that caches and serves content from edge locations close to users for faster delivery.",
-        "use_cases": [
-            "Serving static assets globally",
-            "Reducing latency for users",
-            "Offloading traffic from origin servers",
-            "Video streaming and media delivery"
-        ]
-    },
-    {
-        "id": "monitoring",
-        "label": "Monitoring Service",
-        "description": "Service that collects metrics, logs, and traces to monitor system health, performance, and availability.",
-        "use_cases": [
-            "Application performance monitoring",
-            "Infrastructure metrics",
-            "Log aggregation and analysis",
-            "Alerting and incident management"
-        ]
-    }
-]
-
 class ChatRequest(BaseModel):
     projectId: str
     message: str
@@ -273,38 +136,37 @@ You MUST respond with a JSON object in this exact format:
 {{
   "message": "A friendly, conversational explanation of what you're doing. Be helpful and clear. Describe what components you're adding, removing, or modifying.",
   "operations": [
-    {{"op": "add_node", "payload": {{"id": "web-server-1", "type": "web-server", "position": {{"x": 100, "y": 100}}, "data": {{"name": "API Server"}}}}, "metadata": {{"x": 100, "y": 100}}}},
-    {{"op": "add_node", "payload": {{"id": "database-1", "type": "database", "position": {{"x": 300, "y": 100}}, "data": {{"name": "PostgreSQL"}}}}, "metadata": {{"x": 300, "y": 100}}}},
+    {{"op": "add_node", "payload": {{"id": "web-server-1", "type": "web-server", "position": {{"x": 400, "y": 100}}, "data": {{"name": "API Server"}}}}, "metadata": {{"x": 400, "y": 100}}}},
+    {{"op": "add_node", "payload": {{"id": "database-1", "type": "database", "position": {{"x": 400, "y": 300}}, "data": {{"name": "PostgreSQL"}}}}, "metadata": {{"x": 400, "y": 300}}}},
     {{"op": "add_edge", "payload": {{"source": "web-server-1", "target": "database-1"}}}}
   ]
 }}
 
 Available operations:
-- "add_node": {{"op": "add_node", "payload": {{"id": string (REQUIRED - use a unique identifier like "web-server-1", "database-1"), "type": string, "position": {{"x": number, "y": number}}, "data": {{"name": string, "description": string, "attributes": object}}}}, "metadata": {{"x": number, "y": number}}}}
+- "add_node": {{"op": "add_node", "payload": {{"id": string (REQUIRED - use a descriptive ID like "web-server-1", "database-1", etc.), "type": string, "position": {{"x": number, "y": number}}, "data": {{"name": string, "description": string, "attributes": object}}}}, "metadata": {{"x": number, "y": number}}}}
 - "update_node": {{"op": "update_node", "payload": {{"id": string, "data": {{"name": string, "description": string, "attributes": object}}}}}}
 - "delete_node": {{"op": "delete_node", "payload": {{"id": string}}}}
-- "add_edge": {{"op": "add_edge", "payload": {{"source": string (node ID), "target": string (node ID), "type": string (optional)}}}}
+- "add_edge": {{"op": "add_edge", "payload": {{"source": string (MUST match a node ID from an add_node operation), "target": string (MUST match a node ID from an add_node operation), "type": string (optional)}}}}
 - "delete_edge": {{"op": "delete_edge", "payload": {{"id": string}}}}
 
-CRITICAL: When creating nodes, you MUST:
-1. Provide a unique "id" field in the payload for each node (e.g., "web-server-1", "database-1", "cache-1")
-2. Create edges between related nodes using their IDs
-3. Connect nodes logically based on their relationships:
-   - web-server typically connects to: database, cache, third-party-api
-   - load-balancer typically connects to: web-server (multiple)
-   - worker typically connects to: queue, database, storage
-   - message-broker typically connects to: web-server, worker
-   - cdn typically connects to: web-server, storage
-   - monitoring typically connects to: all services (for observability)
-   - compute-node can connect to various services depending on use case
+Available node types: web-server, database, worker, cache, queue, storage, third-party-api, compute-node, load-balancer, message-broker, cdn, monitoring
 
-Available node types (use the "id" field when creating nodes):
-{chr(10).join(f"- {nt['id']} ({nt['label']}): {nt['description']}{chr(10)}  Use cases: {', '.join(nt['use_cases'])}" for nt in AVAILABLE_NODE_TYPES)}
+CRITICAL RULES FOR POSITIONING NODES:
+1. Position nodes in a HIERARCHICAL layout: vertical flow overall, but horizontal arrangement for nodes at the same level
+2. Nodes at the SAME LEVEL (e.g., multiple web servers, multiple databases) should be arranged HORIZONTALLY with x values like 200, 400, 600, etc. (200px spacing)
+3. Different LEVELS should be arranged VERTICALLY with y values: level 0 at y: 100, level 1 at y: 300, level 2 at y: 500, etc. (200px vertical spacing between levels)
+4. Determine levels based on architecture: entry points (load-balancer, CDN) = level 0, application layer (web-server, worker) = level 1, data layer (database, cache) = level 2, etc.
+5. If creating multiple nodes at the same level, space them horizontally: first at x: 200, second at x: 400, third at x: 600, etc., all with the same y value
+6. Example: 2 web servers at level 1 should be at (x: 200, y: 300) and (x: 400, y: 300), then a database at level 2 at (x: 400, y: 500)
+
+CRITICAL RULES FOR CREATING CONNECTIONS:
+1. When creating nodes with "add_node", you MUST include an explicit "id" field in the payload (e.g., "web-server-1", "database-1", "cache-1")
+2. When creating edges with "add_edge", the "source" and "target" fields MUST reference the exact "id" values from the corresponding "add_node" operations
+3. Always create nodes BEFORE creating edges that connect them (nodes must exist before they can be connected)
+4. If you're creating multiple connected components, create all nodes first, then create all edges that connect them
 
 IMPORTANT:
-- ALWAYS provide an "id" field for each node you create (e.g., "web-server-1", "database-1")
-- ALWAYS create edges between related nodes. If you add multiple nodes that should be connected, include "add_edge" operations
-- The "message" field should be conversational and helpful, describing what you did (e.g., "I've added a database node and connected it to your web server!")
+- The "message" field should be conversational and helpful, describing what you did (e.g., "I've added a database node to your diagram!")
 - The "operations" array should contain the actual diagram modifications
 - If the user asks a question or needs help (not a diagram modification), respond with a helpful message and an empty operations array: {{"message": "...", "operations": []}}
 - Return ONLY valid JSON. Do NOT wrap it in markdown code blocks (```json or ```).
