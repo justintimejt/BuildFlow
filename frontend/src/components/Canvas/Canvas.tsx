@@ -48,7 +48,27 @@ export function Canvas({ onNodeSelect, selectedNodeId }: CanvasProps) {
   }, [projectNodes, selectedNodeId, setNodes]);
 
   useEffect(() => {
-    setEdges(projectEdges);
+    // Apply default styles to edges: smooth, dashed, and animated
+    const styledEdges: Edge[] = projectEdges.map(edge => {
+      // Convert our custom Edge to React Flow Edge format
+      const reactFlowEdge: Edge = {
+        id: edge.id,
+        source: edge.source,
+        target: edge.target,
+        type: 'bezier', // Use bezier curves for smooth, flexible, curvy lines
+        animated: true, // Enable animation
+        label: edge.label,
+        style: {
+          strokeDasharray: '8,4', // Dashed line pattern
+          stroke: '#6366f1', // Indigo color
+          strokeWidth: 2,
+          ...(edge.style || {}), // Allow overrides from our custom Edge type
+        },
+        markerEnd: 'arrowclosed', // Simple string format for React Flow
+      };
+      return reactFlowEdge;
+    });
+    setEdges(styledEdges);
   }, [projectEdges, setEdges]);
 
   const onConnect: OnConnect = useCallback(
@@ -149,13 +169,6 @@ export function Canvas({ onNodeSelect, selectedNodeId }: CanvasProps) {
       className="w-full h-full" 
       ref={reactFlowWrapper} 
       id="canvas-container"
-      style={{ 
-        width: '100%', 
-        height: '100%', 
-        minHeight: '400px',
-        minWidth: '400px',
-        position: 'relative'
-      }}
     >
       <ReactFlow
         nodes={nodes}
