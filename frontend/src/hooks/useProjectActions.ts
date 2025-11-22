@@ -27,31 +27,83 @@ export const useProjectActions = () => {
     // If project has a Supabase ID, delete it from Supabase as well
     if (result.supabaseId && isSupabaseAvailable() && supabaseClient) {
       try {
-        // First, delete all chat messages associated with this project
-        const { error: chatError } = await supabaseClient
-          .from("chat_messages")
-          .delete()
-          .eq("project_id", result.supabaseId);
+        console.log(`🗑️  Deleting project ${result.supabaseId} from Supabase (chat messages will be cascade deleted)`);
         
-        if (chatError) {
-          console.error("Failed to delete chat messages from Supabase:", chatError);
-          // Continue with project deletion even if chat deletion fails
-        }
-        
-        // Then delete the project itself (this should also cascade delete chat messages,
-        // but we're being explicit to ensure it happens)
-        const { error } = await supabaseClient
+        // Delete the project itself - this will automatically cascade delete all chat messages
+        // due to the foreign key constraint: "project_id uuid not null references projects(id) on delete cascade"
+        const { error, data } = await supabaseClient
           .from("projects")
           .delete()
-          .eq("id", result.supabaseId);
+          .eq("id", result.supabaseId)
+          .select(); // Select to verify what was deleted
         
         if (error) {
-          console.error("Failed to delete project from Supabase:", error);
+          console.error("❌ Failed to delete project from Supabase:", error);
+          console.error("Error details:", JSON.stringify(error, null, 2));
+          
+          // Try to delete chat messages explicitly as a fallback
+          // (in case cascade isn't working due to RLS or other issues)
+          console.log("🔄 Attempting to delete chat messages explicitly as fallback...");
+          const { error: chatError, count: chatCount } = await supabaseClient
+            .from("chat_messages")
+            .delete()
+            .eq("project_id", result.supabaseId)
+            .select('*', { count: 'exact', head: false });
+          
+          if (chatError) {
+            console.error("❌ Failed to delete chat messages from Supabase:", chatError);
+          } else {
+            console.log(`✅ Deleted ${chatCount || 0} chat messages as fallback`);
+          }
+          
           // Still return true since localStorage deletion succeeded
+          return true;
+        }
+        
+        // Verify deletion succeeded
+        if (data && data.length > 0) {
+          console.log(`✅ Successfully deleted project ${result.supabaseId} from Supabase`);
+          
+          // Verify that chat messages were also deleted (cascade should have handled this)
+          const { data: remainingMessages, error: verifyError } = await supabaseClient
+            .from("chat_messages")
+            .select("id")
+            .eq("project_id", result.supabaseId)
+            .limit(1);
+          
+          if (verifyError) {
+            console.log(`ℹ️  Could not verify chat message deletion: ${verifyError.message}`);
+          } else if (remainingMessages && remainingMessages.length > 0) {
+            console.warn(`⚠️  Warning: ${remainingMessages.length} chat message(s) still exist after project deletion`);
+            console.warn(`⚠️  This suggests cascade delete may not be working. Attempting explicit deletion...`);
+            
+            // Try explicit deletion as fallback
+            const { error: explicitDeleteError } = await supabaseClient
+              .from("chat_messages")
+              .delete()
+              .eq("project_id", result.supabaseId);
+            
+            if (explicitDeleteError) {
+              console.error(`❌ Failed to explicitly delete remaining chat messages:`, explicitDeleteError);
+            } else {
+              console.log(`✅ Explicitly deleted remaining chat messages`);
+            }
+          } else {
+            console.log(`✅ Verified: All chat messages were automatically deleted via cascade`);
+          }
+        } else {
+          console.log(`⚠️  Project deletion returned no data - project may not have existed in Supabase`);
         }
       } catch (error) {
-        console.error("Error deleting project from Supabase:", error);
+        console.error("❌ Error deleting project from Supabase:", error);
+        console.error("Error stack:", error instanceof Error ? error.stack : 'No stack trace');
         // Still return true since localStorage deletion succeeded
+      }
+    } else {
+      if (!result.supabaseId) {
+        console.log(`ℹ️  Project ${id} has no Supabase ID, skipping Supabase deletion`);
+      } else if (!isSupabaseAvailable()) {
+        console.log(`ℹ️  Supabase not available, skipping Supabase deletion`);
       }
     }
     

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useProjectContext } from '../../contexts/ProjectContext';
 import { useStorage } from '../../hooks/useStorage';
 import { useExport } from '../../hooks/useExport';
+import { useProjectId } from '../../hooks/useProjectId';
 import { supabaseClient, isSupabaseAvailable } from '../../lib/supabaseClient';
 import { getOrCreateSessionId } from '../../lib/session';
 import { getStoredProjects, updateStoredProjectSupabaseId, updateStoredProjectThumbnail } from '../../utils/storage';
@@ -15,11 +16,13 @@ interface ToolbarProps {
   projectId?: string | null;
 }
 
-export function Toolbar({ projectId }: ToolbarProps) {
+export function Toolbar({ projectId: toolbarProjectId }: ToolbarProps) {
   const navigate = useNavigate();
   const { getProject, loadProject, clearProject, undo, redo, canUndo, canRedo } = useProjectContext();
   const { reactFlowInstance } = useReactFlowContext();
   const { saveProject, exportToJSON, importFromJSON } = useStorage();
+  // Get the current projectId from useProjectId hook (for chat message migration)
+  const { projectId: currentSupabaseProjectId } = useProjectId('Untitled Project');
   const { exportAsPNG } = useExport();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -52,7 +55,7 @@ export function Toolbar({ projectId }: ToolbarProps) {
     const project = getProject();
     
     // Use projectId from props, or from project.id, or from URL
-    const currentProjectId = projectId || project.id;
+    const currentProjectId = toolbarProjectId || project.id;
     
     // If we have a projectId, use the existing name or prompt for a new one
     // If we don't have a projectId, prompt for a name
@@ -126,27 +129,89 @@ export function Toolbar({ projectId }: ToolbarProps) {
               throw error;
             }
           } else {
-            // Create new Supabase project
-            const { data: created, error } = await supabaseClient
+            // Check if there's already a Supabase project for this session
+            // (might have been created by useProjectId or previous chat)
+            const { data: existingProjects } = await supabaseClient
               .from("projects")
-              .insert({
-                session_id: sessionId,
-                name: name || project.name || "Untitled Project",
-                diagram_json: projectWithName,
-              })
               .select("id")
-              .single();
+              .eq("session_id", sessionId)
+              .order("created_at", { ascending: true })
+              .limit(1);
             
-            if (error) {
-              console.error("Failed to create project in Supabase:", error);
-              throw error;
-            } else if (created?.id) {
-              // Store the Supabase ID in localStorage
-              updateStoredProjectSupabaseId(savedId, created.id);
+            let newSupabaseId: string | null = null;
+            
+            if (existingProjects && existingProjects.length > 0) {
+              // Use existing Supabase project instead of creating a new one
+              newSupabaseId = existingProjects[0].id;
+              console.log(`ℹ️  Using existing Supabase project: ${newSupabaseId}`);
               
-              // Dispatch custom event to notify other components
+              // Update the existing project with the new data
+              const { error: updateError } = await supabaseClient
+                .from("projects")
+                .update({
+                  name: name || project.name || "Untitled Project",
+                  diagram_json: projectWithName,
+                  updated_at: new Date().toISOString(),
+                })
+                .eq("id", newSupabaseId);
+              
+              if (updateError) {
+                console.error("Failed to update existing Supabase project:", updateError);
+                throw updateError;
+              }
+            } else {
+              // Create new Supabase project
+              const { data: created, error } = await supabaseClient
+                .from("projects")
+                .insert({
+                  session_id: sessionId,
+                  name: name || project.name || "Untitled Project",
+                  diagram_json: projectWithName,
+                })
+                .select("id")
+                .single();
+              
+              if (error) {
+                console.error("Failed to create project in Supabase:", error);
+                throw error;
+              } else if (created?.id) {
+                newSupabaseId = created.id;
+                console.log(`✅ Created new Supabase project: ${newSupabaseId}`);
+                
+                // If there was a previous projectId (from useProjectId), migrate chat messages
+                if (currentSupabaseProjectId && currentSupabaseProjectId !== newSupabaseId) {
+                  console.log(`🔄 Migrating chat messages from ${currentSupabaseProjectId} to ${newSupabaseId}`);
+                  try {
+                    const { error: migrateError } = await supabaseClient
+                      .from("chat_messages")
+                      .update({ project_id: newSupabaseId })
+                      .eq("project_id", currentSupabaseProjectId);
+                    
+                    if (migrateError) {
+                      console.error("Failed to migrate chat messages:", migrateError);
+                      // Don't throw - migration failure shouldn't block save
+                    } else {
+                      console.log(`✅ Successfully migrated chat messages to new project`);
+                    }
+                  } catch (migrateErr) {
+                    console.error("Error migrating chat messages:", migrateErr);
+                    // Don't throw - migration failure shouldn't block save
+                  }
+                }
+              }
+            }
+            
+            if (newSupabaseId) {
+              // Store the Supabase ID in localStorage
+              updateStoredProjectSupabaseId(savedId, newSupabaseId);
+              
+              // Dispatch custom event to notify other components (including chat)
               window.dispatchEvent(new CustomEvent('projectSupabaseIdUpdated', {
-                detail: { localStorageId: savedId, supabaseId: created.id }
+                detail: { 
+                  localStorageId: savedId, 
+                  supabaseId: newSupabaseId,
+                  oldProjectId: currentSupabaseProjectId || null
+                }
               }));
             }
           }

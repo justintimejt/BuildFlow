@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useProjectContext } from "../contexts/ProjectContext";
 import { supabaseClient, isSupabaseAvailable } from "../lib/supabaseClient";
 
@@ -13,11 +13,36 @@ export function useChatWithGemini(projectId: string) {
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const { applyOperations } = useProjectContext();
+  const previousProjectIdRef = useRef<string | null>(null);
+  const hasLoadedRef = useRef(false);
+  const messagesRef = useRef<ChatMessage[]>([]);
+  
+  // Keep messagesRef in sync with messages state
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   // Load chat history from Supabase when projectId is available
   useEffect(() => {
-    // Clear messages immediately when projectId changes
-    setMessages([]);
+    // Only clear messages if projectId actually changed to a different project
+    // Don't clear if going from null/dummy to a UUID (project was just created)
+    const projectIdChanged = previousProjectIdRef.current !== null && 
+                             previousProjectIdRef.current !== projectId &&
+                             previousProjectIdRef.current !== 'dummy' &&
+                             projectId !== 'dummy';
+    
+    if (projectIdChanged) {
+      // Only clear if switching to a completely different project
+      console.log(`🔄 Project ID changed from ${previousProjectIdRef.current} to ${projectId}, clearing messages`);
+      setMessages([]);
+      hasLoadedRef.current = false;
+    } else if (previousProjectIdRef.current !== projectId) {
+      // Project ID changed but it's not a "real" change (e.g., null -> UUID or dummy -> UUID)
+      // Don't clear messages, just update the ref
+      console.log(`ℹ️  Project ID updated from ${previousProjectIdRef.current} to ${projectId}, preserving ${messagesRef.current.length} messages`);
+    }
+    
+    previousProjectIdRef.current = projectId;
     setIsLoadingHistory(true);
 
     if (!projectId || projectId === 'dummy' || !isSupabaseAvailable() || !supabaseClient) {
@@ -29,8 +54,22 @@ export function useChatWithGemini(projectId: string) {
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(projectId)) {
       // Not a valid UUID, so this project doesn't have chat history yet
+      // But don't clear existing messages - they might be local messages that haven't been saved yet
       setIsLoadingHistory(false);
       return;
+    }
+
+    // If we've already loaded for this projectId and it hasn't changed, don't reload
+    // BUT: if projectId changed (even if we think we loaded), we need to reload
+    // because messages might have been migrated to this new projectId
+    if (hasLoadedRef.current && !projectIdChanged && previousProjectIdRef.current === projectId) {
+      setIsLoadingHistory(false);
+      return;
+    }
+    
+    // If projectId changed, reset hasLoaded so we reload
+    if (projectIdChanged) {
+      hasLoadedRef.current = false;
     }
 
     let cancelled = false;
@@ -65,10 +104,49 @@ export function useChatWithGemini(projectId: string) {
             content: msg.content,
           }));
           console.log(`✅ Loaded ${loadedMessages.length} chat messages for project ${projectId}`);
-          setMessages(loadedMessages);
+          
+          // Merge with existing messages to preserve any local messages that haven't been saved yet
+          setMessages((prevMessages) => {
+            // CRITICAL: Always preserve existing messages if we have them
+            // This ensures local messages (sent before project existed in Supabase) are never lost
+            if (prevMessages.length > 0) {
+              if (loadedMessages.length > 0) {
+                // We have both local and loaded messages - merge them intelligently
+                // Create a map of loaded messages by content to avoid duplicates
+                const loadedMap = new Map<string, ChatMessage>();
+                loadedMessages.forEach(msg => {
+                  // Use content as key to identify duplicates
+                  loadedMap.set(`${msg.role}:${msg.content}`, msg);
+                });
+                
+                // Keep local messages that aren't in the loaded set
+                const localOnly = prevMessages.filter(localMsg => {
+                  const key = `${localMsg.role}:${localMsg.content}`;
+                  return !loadedMap.has(key);
+                });
+                
+                // Combine: loaded messages first (they have proper IDs), then local-only messages
+                const merged = [...loadedMessages, ...localOnly];
+                console.log(`🔀 Merged ${loadedMessages.length} Supabase messages with ${localOnly.length} local messages`);
+                return merged;
+              } else {
+                // No messages in Supabase, but we have local messages - KEEP THEM
+                console.log(`✅ No Supabase messages, preserving ${prevMessages.length} local messages`);
+                return prevMessages;
+              }
+            }
+            
+            // No existing messages, use loaded messages (or empty array)
+            return loadedMessages;
+          });
+          
+          hasLoadedRef.current = true;
           setIsLoadingHistory(false);
         } else if (!cancelled) {
           console.log(`ℹ️  No chat history found for project ${projectId}`);
+          // Don't clear existing messages - they might be local messages that haven't been saved yet
+          // Only set hasLoaded if we actually tried to load (not if we skipped due to invalid projectId)
+          hasLoadedRef.current = true;
           setIsLoadingHistory(false);
         }
       } catch (error) {
@@ -87,6 +165,26 @@ export function useChatWithGemini(projectId: string) {
   }, [projectId]);
 
   async function sendMessage(text: string) {
+    // Validate that projectId is a valid UUID before sending (but allow 'dummy' for graceful degradation)
+    if (!projectId || projectId === 'dummy') {
+      console.error("❌ Cannot send message: Invalid or missing projectId", projectId);
+      const errorMessage: ChatMessage = {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        content: "Error: Project ID is invalid. Please ensure Supabase is configured and the project is saved.",
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+      return;
+    }
+
+    // Validate UUID format, but log a warning instead of blocking (backend will validate)
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(projectId)) {
+      console.warn("⚠️  Warning: projectId is not a valid UUID format:", projectId);
+      console.warn("⚠️  Chat may not work correctly. Backend will validate and return an error if invalid.");
+      // Still try to send - let the backend handle validation
+    }
+
     setIsLoading(true);
     const userMessage: ChatMessage = {
       id: crypto.randomUUID(),
@@ -100,6 +198,8 @@ export function useChatWithGemini(projectId: string) {
       // Remove trailing slashes and /api if present to avoid double /api/api
       let backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:4000";
       backendUrl = backendUrl.replace(/\/api\/?$/, '').replace(/\/$/, '');
+      
+      console.log(`📤 Sending message to backend with projectId: ${projectId}`);
       const res = await fetch(
         `${backendUrl}/api/chat`,
         {

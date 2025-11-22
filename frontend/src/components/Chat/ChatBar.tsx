@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useChatWithGemini } from '../../hooks/useChatWithGemini';
+import { isSupabaseAvailable } from '../../lib/supabaseClient';
 import { FaChevronUp, FaChevronDown, FaPaperPlane, FaComment } from 'react-icons/fa';
 
 interface ChatBarProps {
@@ -68,8 +69,10 @@ export function ChatBar({ projectId, leftSidebarCollapsed = false }: ChatBarProp
     }
   };
 
-  // Show chat bar always, but disable if no projectId
-  const isDisabled = !projectId;
+  // Show chat bar always, but disable if Supabase is not configured
+  // If Supabase is configured, allow chat even if projectId is null (it will be created by useProjectId)
+  const isSupabaseConfigured = isSupabaseAvailable();
+  const isDisabled = !isSupabaseConfigured;
 
   // Calculate chat bar width and position, shifted to the right
   const availableWidth = windowWidth;

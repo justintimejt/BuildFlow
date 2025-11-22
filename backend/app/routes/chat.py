@@ -799,23 +799,50 @@ IMPORTANT:
 
         # 5) Store messages (user + assistant) for history
         try:
-            result = supabase.table("chat_messages").insert([
-                {
-                    "project_id": req.projectId,
-                    "role": "user",
-                    "content": req.message,
-                },
-                {
-                    "project_id": req.projectId,
-                    "role": "assistant",
-                    "content": assistant_message,
-                },
-            ]).execute()
+            # Validate that the project exists in Supabase before saving messages
+            # This ensures we're using the correct project_id
+            project_check = supabase.table("projects").select("id").eq("id", req.projectId).single().execute()
             
-            if result.data:
-                print(f"✅ Successfully saved chat messages for project {req.projectId}")
+            if not project_check.data or not project_check.data.get("id"):
+                print(f"⚠️  Warning: Project {req.projectId} not found in Supabase. Skipping chat message save.")
+                # Don't fail the request, but log the issue
             else:
-                print(f"⚠️  Chat messages insert returned no data for project {req.projectId}")
+                # Ensure project_id is exactly what we validated
+                validated_project_id = project_check.data["id"]
+                
+                if validated_project_id != req.projectId:
+                    print(f"⚠️  Warning: Project ID mismatch. Requested: {req.projectId}, Found: {validated_project_id}")
+                    print(f"⚠️  Using validated project ID: {validated_project_id}")
+                
+                result = supabase.table("chat_messages").insert([
+                    {
+                        "project_id": validated_project_id,
+                        "role": "user",
+                        "content": req.message,
+                    },
+                    {
+                        "project_id": validated_project_id,
+                        "role": "assistant",
+                        "content": assistant_message,
+                    },
+                ]).execute()
+                
+                if result.data:
+                    print(f"✅ Successfully saved chat messages for project {validated_project_id}")
+                    # Verify both messages were saved with the same project_id
+                    if len(result.data) == 2:
+                        user_msg_project_id = result.data[0].get("project_id")
+                        assistant_msg_project_id = result.data[1].get("project_id")
+                        if user_msg_project_id != assistant_msg_project_id:
+                            print(f"❌ ERROR: Project ID mismatch in saved messages!")
+                            print(f"   User message project_id: {user_msg_project_id}")
+                            print(f"   Assistant message project_id: {assistant_msg_project_id}")
+                        elif user_msg_project_id != validated_project_id:
+                            print(f"❌ ERROR: Saved messages have wrong project_id!")
+                            print(f"   Expected: {validated_project_id}")
+                            print(f"   Got: {user_msg_project_id}")
+                else:
+                    print(f"⚠️  Chat messages insert returned no data for project {validated_project_id}")
         except Exception as e:
             print(f"❌ Failed to save chat history for project {req.projectId}: {e}")
             import traceback

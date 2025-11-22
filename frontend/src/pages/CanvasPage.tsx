@@ -99,7 +99,15 @@ function CanvasContent() {
       // Listen for custom event when Supabase ID is created/updated
       const handleSupabaseIdUpdate = (e: CustomEvent) => {
         if (e.detail.localStorageId === id) {
-          setSupabaseProjectId(e.detail.supabaseId);
+          const newSupabaseId = e.detail.supabaseId;
+          const oldProjectId = e.detail.oldProjectId;
+          
+          // If messages were migrated, we need to trigger a reload
+          if (oldProjectId && oldProjectId !== newSupabaseId) {
+            console.log(`🔄 Project ID updated from ${oldProjectId} to ${newSupabaseId}, messages should be migrated`);
+          }
+          
+          setSupabaseProjectId(newSupabaseId);
         }
       };
 
@@ -172,7 +180,15 @@ function CanvasContent() {
           <InspectorPanel selectedNodeId={selectedNodeId} />
         </div>
         <ChatBar 
-          projectId={supabaseProjectId || (id && id !== 'new' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id) ? id : projectId)}
+          projectId={
+            // Always prefer supabaseProjectId if available (this is the correct Supabase UUID)
+            supabaseProjectId || 
+            // Fallback to projectId from useProjectId (session-based, but valid for chat)
+            // This ensures chat works even if project hasn't been saved to Supabase yet
+            projectId ||
+            // Last resort: use id if it's a valid UUID format
+            (id && id !== 'new' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id) ? id : null)
+          }
           leftSidebarCollapsed={leftSidebarCollapsed}
         />
       </div>
