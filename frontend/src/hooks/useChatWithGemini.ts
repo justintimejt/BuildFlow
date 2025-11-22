@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useProjectContext } from "../contexts/ProjectContext";
+import { supabaseClient, isSupabaseAvailable } from "../lib/supabaseClient";
 
 interface ChatMessage {
   id: string;
@@ -10,7 +11,59 @@ interface ChatMessage {
 export function useChatWithGemini(projectId: string) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const { applyOperations } = useProjectContext();
+
+  // Load chat history from Supabase when projectId is available
+  useEffect(() => {
+    if (!projectId || projectId === 'dummy' || !isSupabaseAvailable() || !supabaseClient) {
+      setIsLoadingHistory(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadChatHistory() {
+      try {
+        const { data, error } = await supabaseClient
+          .from("chat_messages")
+          .select("id, role, content, created_at")
+          .eq("project_id", projectId)
+          .order("created_at", { ascending: true })
+          .limit(100); // Load up to 100 messages
+
+        if (error) {
+          console.error("Failed to load chat history:", error);
+          if (!cancelled) {
+            setIsLoadingHistory(false);
+          }
+          return;
+        }
+
+        if (!cancelled && data) {
+          // Map database messages to ChatMessage format
+          const loadedMessages: ChatMessage[] = data.map((msg) => ({
+            id: msg.id,
+            role: msg.role as "user" | "assistant",
+            content: msg.content,
+          }));
+          setMessages(loadedMessages);
+          setIsLoadingHistory(false);
+        }
+      } catch (error) {
+        console.error("Error loading chat history:", error);
+        if (!cancelled) {
+          setIsLoadingHistory(false);
+        }
+      }
+    }
+
+    loadChatHistory();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [projectId]);
 
   async function sendMessage(text: string) {
     setIsLoading(true);
@@ -261,6 +314,7 @@ export function useChatWithGemini(projectId: string) {
   return {
     messages,
     isLoading,
+    isLoadingHistory,
     sendMessage,
   };
 }
