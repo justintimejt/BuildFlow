@@ -23,3 +23,14 @@ dist-ssr
 *.sln
 *.sw?
 
+# Environment variables (DO NOT TRACK - contains secrets!)
+.env
+.env.local
+.env.*.local
+backend/.env
+frontend/.env
+
+# Track .env.example files (safe to commit)
+!.env.example
+!backend/.env.example
+!frontend/.env.example
