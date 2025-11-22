@@ -1,0 +1,187 @@
+import { useState, useRef, useEffect } from 'react';
+import { useChatWithGemini } from '../../hooks/useChatWithGemini';
+import { FaChevronUp, FaChevronDown, FaPaperPlane, FaComment } from 'react-icons/fa';
+
+interface ChatBarProps {
+  projectId: string | null;
+}
+
+export function ChatBar({ projectId }: ChatBarProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [input, setInput] = useState('');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Only initialize chat if projectId is available
+  // Hook will only be called if projectId exists (component returns null otherwise)
+  const { messages, isLoading, sendMessage } = useChatWithGemini(projectId!);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    if (isExpanded) {
+      scrollToBottom();
+    }
+  }, [messages, isExpanded]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim() || isLoading || !projectId) return;
+    const message = input.trim();
+    setInput('');
+    sendMessage(message);
+    // Auto-expand when sending a message
+    if (!isExpanded) {
+      setIsExpanded(true);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit(e as any);
+    } else if (e.key === 'Escape' && isExpanded) {
+      setIsExpanded(false);
+    }
+  };
+
+  // Don't render if no projectId (Supabase not configured)
+  if (!projectId) {
+    return null;
+  }
+
+  return (
+    <div
+      className={`
+        fixed bottom-0 left-0 right-0 z-40
+        bg-white border-t border-gray-300 shadow-lg
+        transition-all duration-300 ease-in-out
+        ${isExpanded ? 'h-[300px]' : 'h-[60px]'}
+      `}
+    >
+      {/* Header Bar */}
+      <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200 bg-gray-50">
+        <div className="flex items-center gap-2">
+          <FaComment className="text-blue-600" />
+          <span className="text-sm font-semibold text-gray-800">ArchCoach</span>
+        </div>
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="p-1 hover:bg-gray-200 rounded transition-colors"
+          aria-label={isExpanded ? 'Minimize chat' : 'Expand chat'}
+        >
+          {isExpanded ? (
+            <FaChevronDown className="text-gray-600" />
+          ) : (
+            <FaChevronUp className="text-gray-600" />
+          )}
+        </button>
+      </div>
+
+      {/* Messages Area (only visible when expanded) */}
+      {isExpanded && (
+        <div className="flex-1 overflow-y-auto p-4 space-y-3 h-[200px] bg-white">
+          {messages.length === 0 && (
+            <div className="text-center text-gray-500 mt-8">
+              <p className="text-sm">Start chatting with ArchCoach to modify your diagram.</p>
+              <p className="text-xs mt-2 text-gray-400">Example: "Add a database node"</p>
+            </div>
+          )}
+
+          {messages.map((message) => (
+            <div
+              key={message.id}
+              className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+            >
+              <div
+                className={`max-w-[75%] rounded-lg px-3 py-2 ${
+                  message.role === 'user'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-800'
+                }`}
+              >
+                <div className="text-xs font-medium mb-1 opacity-75">
+                  {message.role === 'user' ? 'You' : 'ArchCoach'}
+                </div>
+                {message.role === 'assistant' ? (
+                  <pre className="text-xs whitespace-pre-wrap font-mono break-words">
+                    {message.content}
+                  </pre>
+                ) : (
+                  <div className="text-sm break-words">{message.content}</div>
+                )}
+              </div>
+            </div>
+          ))}
+
+          {isLoading && (
+            <div className="flex justify-start">
+              <div className="bg-gray-100 rounded-lg px-3 py-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                  <span className="text-xs text-gray-600 ml-2">Thinking...</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div ref={messagesEndRef} />
+        </div>
+      )}
+
+      {/* Input Area */}
+      <form
+        onSubmit={handleSubmit}
+        className={`px-4 py-2 border-t border-gray-200 bg-white ${
+          isExpanded ? '' : 'flex items-center gap-2'
+        }`}
+      >
+        <div className="flex gap-2 items-center">
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={
+              isExpanded
+                ? "Ask ArchCoach to modify your diagram..."
+                : "Type a message..."
+            }
+            disabled={isLoading}
+            className={`
+              flex-1 px-3 py-2 border border-gray-300 rounded-md
+              focus:outline-none focus:ring-2 focus:ring-blue-500
+              disabled:opacity-50 disabled:cursor-not-allowed
+              text-sm
+              ${!isExpanded ? 'flex-1' : 'w-full'}
+            `}
+          />
+          <button
+            type="submit"
+            disabled={isLoading || !input.trim() || !projectId}
+            className={`
+              px-4 py-2 bg-blue-600 text-white rounded-md
+              hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed
+              transition-colors flex items-center gap-2
+              ${!isExpanded ? 'flex-shrink-0' : ''}
+            `}
+            aria-label="Send message"
+          >
+            {isExpanded ? (
+              <>
+                <span className="text-sm">Send</span>
+                <FaPaperPlane className="text-xs" />
+              </>
+            ) : (
+              <FaPaperPlane />
+            )}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+

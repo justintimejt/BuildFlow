@@ -3,6 +3,7 @@ import { ComponentLibrary } from './components/SidebarLeft';
 import { Canvas } from './components/Canvas';
 import { InspectorPanel } from './components/SidebarRight';
 import { Toolbar } from './components/Toolbar';
+import { ChatBar } from './components/Chat';
 import { useProjectId } from './hooks/useProjectId';
 import { useSupabaseDiagramSync } from './hooks/useSupabaseDiagramSync';
 import { isSupabaseAvailable } from './lib/supabaseClient';
@@ -29,7 +30,7 @@ function AppContent() {
   return (
     <div className="h-screen flex flex-col">
       <Toolbar />
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden relative">
         <div className="w-64 flex-shrink-0">
           <ComponentLibrary />
         </div>
@@ -42,6 +43,10 @@ function AppContent() {
         <div className="w-80 flex-shrink-0">
           <InspectorPanel selectedNodeId={selectedNodeId} />
         </div>
+        {/* Chat Bar at bottom - only shows when projectId is available */}
+        {projectId && (
+          <ChatBar projectId={projectId} />
+        )}
       </div>
     </div>
   );
