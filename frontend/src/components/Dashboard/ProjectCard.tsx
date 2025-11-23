@@ -128,7 +128,7 @@ export function ProjectCard({
             {showMenu && (
               <div
                 ref={menuRef}
-                className="absolute right-0 top-full mt-1 w-36 bg-black shadow-2xl z-50 border border-white/10 rounded-lg"
+                className="absolute right-0 top-full mt-6 w-36 bg-black/80 backdrop-blur-xl shadow-2xl z-50 border border-white/20 rounded-lg"
                 onClick={(e) => e.stopPropagation()}
               >
                 <button

@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProjectContext } from '../../contexts/ProjectContext';
 import { useStorage } from '../../hooks/useStorage';
@@ -11,6 +11,8 @@ import { useReactFlowContext } from '../../contexts/ReactFlowContext';
 import { captureCanvasThumbnail } from '../../utils/canvasCapture';
 import { optimizeThumbnail } from '../../utils/thumbnail';
 import { FaSave, FaFolderOpen, FaDownload, FaFileExport, FaTrash, FaHome } from 'react-icons/fa';
+import { SaveProjectModal } from './SaveProjectModal';
+import { Toast } from '../ui/Toast';
 
 interface ToolbarProps {
   projectId?: string | null;
@@ -25,6 +27,14 @@ export function Toolbar({ projectId: toolbarProjectId }: ToolbarProps) {
   const { projectId: currentSupabaseProjectId } = useProjectId('Untitled Project');
   const { exportAsPNG } = useExport();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const saveButtonRef = useRef<HTMLButtonElement>(null);
+  const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
+  const [saveModalDefaultName, setSaveModalDefaultName] = useState('');
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error'; isVisible: boolean }>({
+    message: '',
+    type: 'success',
+    isVisible: false
+  });
 
   // Keyboard shortcuts for undo/redo (global, works from anywhere)
   useEffect(() => {
@@ -51,31 +61,37 @@ export function Toolbar({ projectId: toolbarProjectId }: ToolbarProps) {
     };
   }, [undo, redo, canUndo, canRedo]);
 
-  const handleSave = async () => {
+  const handleSaveClick = async () => {
     const project = getProject();
     
     // Use projectId from props, or from project.id, or from URL
     const currentProjectId = toolbarProjectId || project.id;
     
-    // If we have a projectId, use the existing name or prompt for a new one
-    // If we don't have a projectId, prompt for a name
-    let name: string | undefined;
+    // Get current project name from storage if available
+    let defaultName = '';
     if (currentProjectId) {
-      // Get current project name from storage
       const { getStoredProjects } = await import('../../utils/storage');
       const projects = getStoredProjects();
       const currentProject = projects.find(p => p.id === currentProjectId);
-      const currentName = currentProject?.name || project.name;
-      
-      const newName = prompt('Enter project name (optional):', currentName);
-      name = newName || currentName;
+      defaultName = currentProject?.name || project.name || '';
     } else {
-      name = prompt('Enter project name (optional):') || undefined;
+      defaultName = project.name || '';
     }
+    
+    setSaveModalDefaultName(defaultName);
+    setIsSaveModalOpen(true);
+  };
+
+  const handleSaveConfirm = async (name: string) => {
+    const project = getProject();
+    
+    // Use projectId from props, or from project.id, or from URL
+    const currentProjectId = toolbarProjectId || project.id;
     
     try {
       // Save to localStorage - pass projectId to update existing project
-      const savedId = saveProject(project, name, currentProjectId || undefined);
+      const projectName = name || project.name || 'Untitled Project';
+      const savedId = saveProject(project, projectName, currentProjectId || undefined);
       
       // Generate thumbnail if React Flow instance is available
       if (savedId && reactFlowInstance) {
@@ -108,7 +124,7 @@ export function Toolbar({ projectId: toolbarProjectId }: ToolbarProps) {
           const projectWithName = {
             ...project,
             id: savedId,
-            name: name || project.name
+            name: projectName
           };
           
           const sessionId = getOrCreateSessionId();
@@ -118,7 +134,7 @@ export function Toolbar({ projectId: toolbarProjectId }: ToolbarProps) {
             const { error } = await supabaseClient
               .from("projects")
               .update({
-                name: name || project.name,
+                name: projectName,
                 diagram_json: projectWithName,
                 updated_at: new Date().toISOString(),
               })
@@ -149,7 +165,7 @@ export function Toolbar({ projectId: toolbarProjectId }: ToolbarProps) {
               const { error: updateError } = await supabaseClient
                 .from("projects")
                 .update({
-                  name: name || project.name || "Untitled Project",
+                  name: projectName,
                   diagram_json: projectWithName,
                   updated_at: new Date().toISOString(),
                 })
@@ -165,7 +181,7 @@ export function Toolbar({ projectId: toolbarProjectId }: ToolbarProps) {
                 .from("projects")
                 .insert({
                   session_id: sessionId,
-                  name: name || project.name || "Untitled Project",
+                  name: projectName,
                   diagram_json: projectWithName,
                 })
                 .select("id")
@@ -221,9 +237,17 @@ export function Toolbar({ projectId: toolbarProjectId }: ToolbarProps) {
         }
       }
       
-      alert('Project saved successfully!');
+      setToast({
+        message: 'Project saved successfully!',
+        type: 'success',
+        isVisible: true
+      });
     } catch (error) {
-      alert('Failed to save project');
+      setToast({
+        message: 'Failed to save project',
+        type: 'error',
+        isVisible: true
+      });
       console.error(error);
     }
   };
@@ -299,13 +323,22 @@ export function Toolbar({ projectId: toolbarProjectId }: ToolbarProps) {
       <div className="w-px h-6 bg-white/10" />
       
       <button
-        onClick={handleSave}
+        ref={saveButtonRef}
+        onClick={handleSaveClick}
         className="flex items-center gap-2 px-3 py-1.5 text-sm font-light tracking-tight text-white bg-white/10 border border-white/20 rounded-md hover:bg-white/20 transition-all duration-200"
         title="Save to localStorage"
       >
         <FaSave />
         Save
       </button>
+
+      <SaveProjectModal
+        isOpen={isSaveModalOpen}
+        onClose={() => setIsSaveModalOpen(false)}
+        onSave={handleSaveConfirm}
+        defaultName={saveModalDefaultName}
+        buttonRef={saveButtonRef}
+      />
 
       <button
         onClick={handleImportJSON}
@@ -352,6 +385,13 @@ export function Toolbar({ projectId: toolbarProjectId }: ToolbarProps) {
         <FaTrash />
         Clear
       </button>
+
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        isVisible={toast.isVisible}
+        onClose={() => setToast({ ...toast, isVisible: false })}
+      />
     </div>
   );
 }
