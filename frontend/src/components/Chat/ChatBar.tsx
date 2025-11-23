@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useChatWithGemini } from '../../hooks/useChatWithGemini';
 import { isSupabaseAvailable } from '../../lib/supabaseClient';
-import { FaChevronUp, FaChevronDown, FaPaperPlane, FaComment } from 'react-icons/fa';
+import { FaChevronUp, FaChevronDown, FaPaperPlane } from 'react-icons/fa';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -108,8 +108,13 @@ export function ChatBar({ projectId, leftSidebarCollapsed = false }: ChatBarProp
       {/* Header Bar */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/30">
         <div className="flex items-center gap-2">
-          <FaComment className="text-primary h-4 w-4" />
+          <div className="relative">
+            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+            <div className="absolute inset-0 w-2 h-2 bg-green-500 rounded-full animate-ping opacity-75"></div>
+          </div>
           <span className="text-sm font-semibold text-foreground">Luna</span>
+          <div className="w-px h-4 bg-border"></div>
+          <span className="text-sm font-normal text-muted-foreground">gemini-2.5-flash</span>
         </div>
         <Button
           variant="ghost"
