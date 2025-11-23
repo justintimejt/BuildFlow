@@ -300,7 +300,7 @@ export function Toolbar({ projectId: toolbarProjectId }: ToolbarProps) {
       
       <button
         onClick={handleSave}
-        className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white bg-white/10 border border-white/20 rounded-md hover:bg-white/20 transition-all duration-200"
+        className="flex items-center gap-2 px-3 py-1.5 text-sm font-light tracking-tight text-white bg-white/10 border border-white/20 rounded-md hover:bg-white/20 transition-all duration-200"
         title="Save to localStorage"
       >
         <FaSave />
@@ -309,7 +309,7 @@ export function Toolbar({ projectId: toolbarProjectId }: ToolbarProps) {
 
       <button
         onClick={handleImportJSON}
-        className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white bg-white/10 border border-white/20 rounded-md hover:bg-white/20 transition-all duration-200"
+        className="flex items-center gap-2 px-3 py-1.5 text-sm font-light tracking-tight text-white bg-white/10 border border-white/20 rounded-md hover:bg-white/20 transition-all duration-200"
         title="Import JSON file"
       >
         <FaFolderOpen />
@@ -326,7 +326,7 @@ export function Toolbar({ projectId: toolbarProjectId }: ToolbarProps) {
 
       <button
         onClick={handleExportJSON}
-        className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white bg-white/10 border border-white/20 rounded-md hover:bg-white/20 transition-all duration-200"
+        className="flex items-center gap-2 px-3 py-1.5 text-sm font-light tracking-tight text-white bg-white/10 border border-white/20 rounded-md hover:bg-white/20 transition-all duration-200"
         title="Export as JSON"
       >
         <FaFileExport />
@@ -335,7 +335,7 @@ export function Toolbar({ projectId: toolbarProjectId }: ToolbarProps) {
 
       <button
         onClick={handleExportPNG}
-        className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white bg-white/10 border border-white/20 rounded-md hover:bg-white/20 transition-all duration-200"
+        className="flex items-center gap-2 px-3 py-1.5 text-sm font-light tracking-tight text-white bg-white/10 border border-white/20 rounded-md hover:bg-white/20 transition-all duration-200"
         title="Export as PNG"
       >
         <FaDownload />
@@ -346,7 +346,7 @@ export function Toolbar({ projectId: toolbarProjectId }: ToolbarProps) {
 
       <button
         onClick={handleClear}
-        className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-red-400 bg-red-400/10 border border-red-400/20 rounded-md hover:bg-red-400/20 transition-all duration-200"
+        className="flex items-center gap-2 px-3 py-1.5 text-sm font-light tracking-tight text-red-400 bg-red-400/10 border border-red-400/20 rounded-md hover:bg-red-400/20 transition-all duration-200"
         title="Clear canvas"
       >
         <FaTrash />

@@ -102,7 +102,7 @@ export function ProjectCard({
               />
             ) : (
               <h3
-                className="font-semibold text-white truncate text-lg mb-1"
+                className="font-light tracking-tight text-white truncate text-lg mb-1"
                 title={project.name}
               >
                 {project.name}
@@ -192,7 +192,7 @@ export function ProjectCard({
             e.stopPropagation();
             onOpen(project.id);
           }}
-          className="w-full mt-auto px-4 py-3 bg-white/10 border border-white/20 text-white hover:bg-white/20 hover:border-white/30 transition-all duration-200 flex items-center justify-center gap-2 font-semibold text-sm rounded-lg"
+          className="w-full mt-auto px-4 py-3 bg-white/10 border border-white/20 text-white hover:bg-white/20 hover:border-white/30 transition-all duration-200 flex items-center justify-center gap-2 font-light tracking-tight text-sm rounded-lg"
         >
           Open Project
           <FaArrowRight className="text-xs" />

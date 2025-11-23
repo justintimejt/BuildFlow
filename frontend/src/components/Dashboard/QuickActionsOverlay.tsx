@@ -15,7 +15,7 @@ export function QuickActionsOverlay({ onOpen, onDuplicate, onDelete }: QuickActi
             e.stopPropagation();
             onOpen();
           }}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 font-medium shadow-lg"
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 font-light tracking-tight shadow-lg"
           title="Open project"
         >
           <FaFolderOpen />
