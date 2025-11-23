@@ -10,7 +10,7 @@ A lightweight, browser-based visual editor for designing system architectures th
 - ✏️ **Node Configuration** - Edit metadata through inspector panel
 - 💾 **Persistence** - Save/load projects via Supabase (cloud) or localStorage (offline)
 - 📤 **Export** - Export diagrams as PNG images
-- 🤖 **AI Chat Assistant (ArchCoach)** - Modify diagrams using natural language via Gemini
+- 🤖 **AI Chat Assistant (Luna)** - Modify diagrams using natural language via Gemini
 
 ## Architecture
 
@@ -133,7 +133,7 @@ This uses `concurrently` to run both servers simultaneously.
 - CDN
 - Monitoring Service
 
-### AI Chat (ArchCoach)
+### AI Chat (Luna)
 
 The AI chat assistant can help you:
 - Add nodes to your diagram

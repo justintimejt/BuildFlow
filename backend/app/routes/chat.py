@@ -521,7 +521,7 @@ async def chat(req: ChatRequest):
 
         # 3) Build system prompt for Gemini
         system_instruction = f"""
-You are ArchCoach, a friendly and helpful AI assistant that helps users design system architecture diagrams.
+You are Luna, a friendly and helpful AI assistant that helps users design system architecture diagrams.
 The diagram is represented as a JSON "project" with nodes and edges.
 
 Current diagram JSON:

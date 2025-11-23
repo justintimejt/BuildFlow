@@ -1,6 +1,6 @@
 # Dark Mode Toggle Prompt (Bottom-left Sun/Moon Control) – Cursor-ready
 
-You are an AI pair programmer working in the **BuildFlow / ArchCoach** repo.
+You are an AI pair programmer working in the **BuildFlow / Luna** repo.
 
 Your task: **implement a global light/dark theme with a sun/moon toggle button located in the bottom-left control panel of the UI.** The toggle must be visually clean, robust, and persist the user’s choice.
 
@@ -26,7 +26,7 @@ Your task: **implement a global light/dark theme with a sun/moon toggle button l
    - It should not overlap with other controls; treat it as a first-class control.
 
 4. **Persistence**
-   - Persist the theme to `localStorage` (e.g. key: `"archcoach-theme"`).
+   - Persist the theme to `localStorage` (e.g. key: `"luna-theme"`).
    - On app load:
      - If there is a saved theme in `localStorage`, use that.
      - Otherwise, fall back to system preference (`prefers-color-scheme: dark`) when possible.
@@ -84,7 +84,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   useEffect(() => {
     // 1. Check localStorage
-    const stored = window.localStorage.getItem("archcoach-theme") as Theme | null;
+    const stored = window.localStorage.getItem("luna-theme") as Theme | null;
 
     if (stored === "light" || stored === "dark") {
       setThemeState(stored);
@@ -98,7 +98,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   useEffect(() => {
     // Persist to localStorage
-    window.localStorage.setItem("archcoach-theme", theme);
+    window.localStorage.setItem("luna-theme", theme);
 
     // Apply class or data attribute to root
     const root = document.documentElement; // or app root element
@@ -219,4 +219,4 @@ Before finishing, verify:
    - It has a visible focus ring.
    - Screen reader reads a clear label like “Switch to dark mode” / “Switch to light mode”.
 
-After all this, the BuildFlow / ArchCoach app should have a **clean dark mode experience** controlled by a **sun/moon toggle button in the bottom-left control panel**.
+After all this, the BuildFlow / Luna app should have a **clean dark mode experience** controlled by a **sun/moon toggle button in the bottom-left control panel**.
