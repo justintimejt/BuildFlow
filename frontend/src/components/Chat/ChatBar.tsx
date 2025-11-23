@@ -106,7 +106,7 @@ export function ChatBar({ projectId, leftSidebarCollapsed = false }: ChatBarProp
       }}
     >
       {/* Header Bar */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/30">
+      <div className="flex items-center justify-between px-4 py-3 rounded-lg border-b border-border  bg-muted/30">
         <div className="flex items-center gap-2">
           <div className="relative">
             <div className="w-2 h-2 bg-green-500 rounded-full"></div>
