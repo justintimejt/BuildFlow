@@ -107,7 +107,11 @@ export function ChatBar({ projectId, leftSidebarCollapsed = false }: ChatBarProp
       }}
     >
       {/* Header Bar */}
+<<<<<<< HEAD
       <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted" style={{ backgroundColor: 'hsl(var(--muted))' }}>
+=======
+      <div className="flex items-center justify-between px-4 py-3 rounded-lg border-b border-border  bg-muted/30">
+>>>>>>> 079de0c2c33a531f5544684a235edd4a504b6236
         <div className="flex items-center gap-2">
           <div className="relative">
             <div className="w-2 h-2 bg-green-500 rounded-full"></div>
