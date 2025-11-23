@@ -73,7 +73,7 @@ export function ProjectList({
                 autoFocus
               />
             ) : (
-              <h3 className="font-semibold text-white truncate">{project.name}</h3>
+              <h3 className="font-light tracking-tight text-white truncate">{project.name}</h3>
             )}
             {project.description && (
               <p className="text-sm text-white/70 truncate">{project.description}</p>

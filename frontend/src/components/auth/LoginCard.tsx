@@ -81,7 +81,7 @@ export function LoginCard({
     return (
       <div className="w-full max-w-md rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm p-8 shadow-2xl">
         <div className="text-center">
-          <h1 className="text-2xl font-semibold text-white">Welcome to BuildFlow</h1>
+          <h1 className="text-2xl font-light tracking-tight text-white">Welcome to BuildFlow</h1>
           <p className="mt-3 text-sm text-red-400">
             Supabase is not configured. Please set up your environment variables.
           </p>
@@ -93,7 +93,7 @@ export function LoginCard({
   return (
     <div className="w-full max-w-md rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm p-8 shadow-2xl">
       <div className="mb-6 text-center">
-        <h1 className="text-2xl font-semibold tracking-tight text-white">Welcome to BuildFlow</h1>
+        <h1 className="text-2xl font-light tracking-tight text-white">Welcome to BuildFlow</h1>
         <p className="mt-1 text-sm text-white/70">
           Sign in to save and manage your architecture diagrams.
         </p>
