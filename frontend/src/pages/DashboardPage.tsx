@@ -91,7 +91,7 @@ export function DashboardPage() {
       <div className="h-screen flex items-center justify-center bg-black relative">
         <div className="fixed inset-0 z-0 pointer-events-none">
           <div className="w-full h-full">
-            <DotScreenShader />
+            <DotScreenShader opacityMultiplier={0.4} />
           </div>
         </div>
         <div className="text-white/70 relative z-10">Loading projects...</div>
@@ -104,7 +104,7 @@ export function DashboardPage() {
       {/* Dot Shader Background */}
       <div className="fixed inset-0 z-0 pointer-events-none">
         <div className="w-full h-full">
-          <DotScreenShader />
+          <DotScreenShader opacityMultiplier={0.4} />
         </div>
       </div>
 

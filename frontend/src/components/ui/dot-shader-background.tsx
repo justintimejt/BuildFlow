@@ -18,7 +18,7 @@ const DotMaterial = shaderMaterial(
     render: 0,
     rotation: 0,
     gridSize: 50,
-    dotOpacity: 0.01
+    dotOpacity: 0.05
   },
   /* glsl */ `
     void main() {
@@ -96,7 +96,11 @@ const DotMaterial = shaderMaterial(
   `
 )
 
-function Scene() {
+interface SceneProps {
+  opacityMultiplier?: number
+}
+
+function Scene({ opacityMultiplier = 1 }: SceneProps) {
   const size = useThree((s) => s.size)
   const viewport = useThree((s) => s.viewport)
   const { theme } = useTheme()
@@ -110,19 +114,19 @@ function Scene() {
         return {
           dotColor: '#FFFFFF',
           bgColor: '#000000', // Pure black background
-          dotOpacity: 0.005
+          dotOpacity: 0.025
         }
       case 'light':
         return {
           dotColor: '#4A90E2', // Using the vibrant blue from color palette
           bgColor: '#F7F7F7', // Using the off-white from color palette
-          dotOpacity: 0.03
+          dotOpacity: 0.15
         }
       default:
         return {
           dotColor: '#FFFFFF',
           bgColor: '#000000', // Pure black background
-          dotOpacity: 0.01
+          dotOpacity: 0.05
         }
     }
   }
@@ -146,8 +150,8 @@ function Scene() {
   useEffect(() => {
     dotMaterial.uniforms.dotColor.value.setHex(themeColors.dotColor.replace('#', '0x'))
     dotMaterial.uniforms.bgColor.value.setHex(themeColors.bgColor.replace('#', '0x'))
-    dotMaterial.uniforms.dotOpacity.value = themeColors.dotOpacity
-  }, [theme, dotMaterial, themeColors])
+    dotMaterial.uniforms.dotOpacity.value = themeColors.dotOpacity * opacityMultiplier
+  }, [theme, dotMaterial, themeColors, opacityMultiplier])
 
   useFrame((state) => {
     dotMaterial.uniforms.time.value = state.clock.elapsedTime
@@ -174,7 +178,11 @@ function Scene() {
   )
 }
 
-export const DotScreenShader = () => {
+interface DotScreenShaderProps {
+  opacityMultiplier?: number
+}
+
+export const DotScreenShader = ({ opacityMultiplier = 1 }: DotScreenShaderProps = {}) => {
   return (
     <div className="w-full h-full pointer-events-auto">
       <Canvas
@@ -185,7 +193,7 @@ export const DotScreenShader = () => {
           toneMapping: THREE.NoToneMapping
         }}
         style={{ width: '100%', height: '100%' }}>
-        <Scene />
+        <Scene opacityMultiplier={opacityMultiplier} />
       </Canvas>
     </div>
   )
