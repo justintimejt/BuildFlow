@@ -1,6 +1,6 @@
-# ArchCoach Component Library Prompt (Cursor-ready)
+# Luna Component Library Prompt (Cursor-ready)
 
-You are an AI pair programmer working in the **BuildFlow / ArchCoach** repo.  
+You are an AI pair programmer working in the **BuildFlow / Luna** repo.  
 Your task is to ensure that the **left sidebar “Components” library** and the **backend `AVAILABLE_NODE_TYPES` in `backend/app/routes/chat.py`** stay perfectly in sync.
 
 ---

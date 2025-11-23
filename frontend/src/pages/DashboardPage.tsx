@@ -95,7 +95,7 @@ export function DashboardPage() {
                 </>
               ) : (
                 <>
-                  {projects.length} {projects.length === 1 ? 'project' : 'projects'}
+              {projects.length} {projects.length === 1 ? 'project' : 'projects'}
                 </>
               )}
             </p>

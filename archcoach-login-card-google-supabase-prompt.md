@@ -1,6 +1,6 @@
 # Supabase Google Auth Login Card – Cursor-ready Prompt
 
-You are an AI pair programmer working in the **BuildFlow / ArchCoach** repo.
+You are an AI pair programmer working in the **BuildFlow / Luna** repo.
 
 Your task: **Create a login card UI that lets users sign in / sign up with Google using Supabase Auth (Google OAuth)**, and wire it up end-to-end on the frontend.
 

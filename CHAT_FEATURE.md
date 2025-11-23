@@ -1,8 +1,8 @@
-# Chat Feature Documentation - ArchCoach AI Assistant
+# Chat Feature Documentation - Luna AI Assistant
 
 ## Overview
 
-The Chat Feature is an AI-powered assistant called **ArchCoach** that allows users to modify system design diagrams using natural language. Users can type commands like "Add a database node" or "Connect the API server to the database", and the AI will automatically generate and apply the necessary diagram operations.
+The Chat Feature is an AI-powered assistant called **Luna** that allows users to modify system design diagrams using natural language. Users can type commands like "Add a database node" or "Connect the API server to the database", and the AI will automatically generate and apply the necessary diagram operations.
 
 ## Architecture
 
@@ -478,7 +478,7 @@ The backend constructs a system prompt that includes:
 ### Example Prompt
 
 ```
-You are ArchCoach, an AI that helps edit a system design diagram.
+You are Luna, an AI that helps edit a system design diagram.
 The diagram is represented as a JSON "project" with nodes and edges.
 
 Current diagram JSON:

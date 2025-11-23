@@ -13,5 +13,6 @@ importlib-metadata>=6.0.0
 # - lucide-react (for icons in shadcn components)
 # - @radix-ui/react-slot (for Button component)
 # - @radix-ui/react-dropdown-menu (for DropdownMenu component)
+# - @radix-ui/react-avatar (for Avatar component in chat interface)
 # - @types/node (TypeScript types for Node.js)
 
