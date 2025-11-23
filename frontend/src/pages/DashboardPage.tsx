@@ -124,7 +124,7 @@ export function DashboardPage() {
               </div>
             </button>
             <div>
-              <h1 className="text-2xl font-light tracking-tight text-white">BuildFlow</h1>
+              <h1 className="text-2xl font-bold text-white">BuildFlow</h1>
               <p className="text-sm font-light tracking-tight text-white/70">Projects</p>
             </div>
           </div>
