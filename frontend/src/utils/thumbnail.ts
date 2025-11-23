@@ -10,19 +10,34 @@ export const generateThumbnailFromCanvas = async (
     width?: number;
     height?: number;
     quality?: number;
+    windowWidth?: number;
+    windowHeight?: number;
   }
 ): Promise<string> => {
   const { width = 400, height = 300, quality = 0.8 } = options || {};
 
   try {
+    // Get the actual dimensions of the element
+    const rect = canvasElement.getBoundingClientRect();
+    const elementWidth = rect.width || canvasElement.scrollWidth || width;
+    const elementHeight = rect.height || canvasElement.scrollHeight || height;
+
     const canvas = await html2canvas(canvasElement, {
-      width,
-      height,
+      width: elementWidth,
+      height: elementHeight,
       scale: 1,
       useCORS: true,
-      backgroundColor: '#000000',
+      backgroundColor: '#f3f4f6', // Match the canvas background
       logging: false,
-      allowTaint: false
+      allowTaint: false,
+      // Capture the full viewport
+      x: 0,
+      y: 0,
+      scrollX: 0,
+      scrollY: 0,
+      // Ensure we capture the entire visible area
+      windowWidth: options?.windowWidth || elementWidth,
+      windowHeight: options?.windowHeight || elementHeight,
     });
 
     // Convert to base64 with specified quality

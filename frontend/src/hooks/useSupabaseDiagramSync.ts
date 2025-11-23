@@ -12,6 +12,9 @@ export function useSupabaseDiagramSync(projectId: string | null) {
       return;
     }
 
+    // Store supabaseClient in a const to satisfy TypeScript
+    const client = supabaseClient;
+
     const timeout = setTimeout(async () => {
       try {
         const project = getProject();
@@ -23,7 +26,7 @@ export function useSupabaseDiagramSync(projectId: string | null) {
         let projectName = project.name;
         if (!projectName) {
           try {
-            const { data } = await supabaseClient
+            const { data } = await client
               .from("projects")
               .select("name, diagram_json")
               .eq("id", projectId)
@@ -48,7 +51,7 @@ export function useSupabaseDiagramSync(projectId: string | null) {
           name: projectName
         };
 
-        await supabaseClient
+        await client
           .from("projects")
           .update({
             name: projectName,

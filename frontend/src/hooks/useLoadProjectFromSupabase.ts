@@ -4,20 +4,24 @@ import { useProjectContext } from "../contexts/ProjectContext";
 import type { Project } from "../types";
 
 export function useLoadProjectFromSupabase(projectId: string | null) {
-  const { loadProject } = useProjectContext();
+  const { loadProject, nodes } = useProjectContext();
   const hasLoadedRef = { current: false };
 
   useEffect(() => {
     // Skip if Supabase is not available, no project ID, or already loaded
-    if (!projectId || !isSupabaseAvailable() || !supabaseClient || hasLoadedRef.current) {
+    // Also skip if nodes already exist (project was loaded from localStorage)
+    if (!projectId || !isSupabaseAvailable() || !supabaseClient || hasLoadedRef.current || (nodes && nodes.length > 0)) {
       return;
     }
+
+    // Store supabaseClient in a const to satisfy TypeScript
+    const client = supabaseClient;
 
     let cancelled = false;
 
     async function loadProjectData() {
       try {
-        const { data, error } = await supabaseClient
+        const { data, error } = await client
           .from("projects")
           .select("diagram_json, name")
           .eq("id", projectId)
