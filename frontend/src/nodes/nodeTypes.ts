@@ -31,7 +31,6 @@ import {
   FaCodeBranch,
   FaLaptop,
   FaMobileAlt,
-  FaUsers,
   FaCogs
 } from 'react-icons/fa';
 

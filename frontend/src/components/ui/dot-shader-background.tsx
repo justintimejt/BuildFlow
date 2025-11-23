@@ -1,6 +1,6 @@
 import { useMemo, useEffect } from 'react'
 
-import { Canvas, ThreeEvent, useFrame, useThree } from '@react-three/fiber'
+import { Canvas, useFrame, useThree } from '@react-three/fiber'
 
 import { shaderMaterial, useTrailTexture } from '@react-three/drei'
 
@@ -153,7 +153,7 @@ function Scene() {
     dotMaterial.uniforms.time.value = state.clock.elapsedTime
   })
 
-  const handlePointerMove = (e: ThreeEvent<PointerEvent>) => {
+  const handlePointerMove = (e: any) => {
     onMove(e)
   }
 

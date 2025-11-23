@@ -22,7 +22,7 @@ export function ProjectCardPreview({ thumbnail, project, className = '' }: Proje
           <img
             src={placeholder}
             alt={`${project.name || 'Project'} preview`}
-            className="max-w-full max-h-full object-contain"
+            className="w-full h-full object-cover"
           />
         ) : (
           <div className="flex flex-col items-center justify-center text-white/50">
@@ -44,9 +44,13 @@ export function ProjectCardPreview({ thumbnail, project, className = '' }: Proje
       <img
         src={thumbnail}
         alt={`${project.name || 'Project'} preview`}
-        className={`max-w-full max-h-full object-contain transition-opacity duration-300 ${
+        className={`max-w-full max-h-full object-center transition-opacity duration-300 ${
           isLoading ? 'opacity-0' : 'opacity-100'
         }`}
+        style={{
+          objectFit: 'contain',
+          objectPosition: 'center',
+        }}
         onLoad={() => setIsLoading(false)}
         onError={() => {
           setImageError(true);

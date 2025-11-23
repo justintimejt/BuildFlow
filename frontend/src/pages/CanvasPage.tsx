@@ -41,17 +41,21 @@ function CanvasContent() {
   const [hasLoaded, setHasLoaded] = useState(false);
   const [loadedProjectId, setLoadedProjectId] = useState<string | null>(null);
   const [supabaseProjectId, setSupabaseProjectId] = useState<string | null>(null);
+  const [isLoadingFromStorage, setIsLoadingFromStorage] = useState(true);
 
   // Reset hasLoaded when project ID changes
   useEffect(() => {
     if (id !== loadedProjectId) {
       setHasLoaded(false);
       setLoadedProjectId(id || null);
+      setIsLoadingFromStorage(true);
     }
   }, [id, loadedProjectId]);
 
   // Load project from localStorage first (primary source for dashboard projects)
+  // This runs immediately on mount and when id changes
   useEffect(() => {
+    // Only load if we have a valid project ID and haven't loaded yet
     if (id && id !== 'new' && !hasLoaded) {
       // Always try localStorage first since that's where dashboard saves projects
       const project = loadProjectFromStorage(id);
@@ -62,6 +66,9 @@ function CanvasContent() {
           nodes: project.nodes || [],
           edges: project.edges || []
         };
+        console.log(`📂 Loading project ${id} from localStorage with ${projectToLoad.nodes.length} nodes and ${projectToLoad.edges.length} edges`);
+        
+        // Load the project immediately
         loadProject(projectToLoad);
         
         // Get the Supabase ID if available
@@ -71,15 +78,25 @@ function CanvasContent() {
           setSupabaseProjectId(storedProject.supabaseId);
         }
         
+        // Mark as loaded to prevent duplicate loads
         setHasLoaded(true);
+        setIsLoadingFromStorage(false);
       } else {
         // Project not found in localStorage
+        console.log(`⚠️ Project ${id} not found in localStorage`);
+        setIsLoadingFromStorage(false);
         // If Supabase is available, let useLoadProjectFromSupabase try to load it
         // Otherwise, redirect to dashboard
         if (!isSupabaseAvailable()) {
           navigate('/dashboard', { replace: true });
         }
       }
+    } else if (id === 'new') {
+      // New project - no need to load
+      setIsLoadingFromStorage(false);
+    } else if (!id) {
+      // No ID yet - still loading
+      setIsLoadingFromStorage(true);
     }
   }, [id, loadProject, navigate, hasLoaded]);
 
@@ -143,14 +160,22 @@ function CanvasContent() {
   // Load project from Supabase when projectId is available (fallback if not in localStorage)
   // This will only load if Supabase is available and we haven't loaded from localStorage
   // Use supabaseProjectId if available, otherwise check if id is a UUID
+  // Only load from Supabase if we haven't loaded from localStorage
   useLoadProjectFromSupabase(
-    supabaseProjectId || 
-    (id && id !== 'new' && !hasLoaded && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id) ? id : null)
+    (!hasLoaded && !isLoadingFromStorage) ? 
+      (supabaseProjectId || 
+       (id && id !== 'new' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id) ? id : null)) :
+      null
   );
 
-  // Sync diagram to Supabase (only if Supabase is configured)
+  // Sync diagram to Supabase (only if Supabase is configured and project has been loaded)
   // Use supabaseProjectId if available, otherwise use the id if it's a UUID
-  useSupabaseDiagramSync(supabaseProjectId || (id && id !== 'new' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id) ? id : null));
+  // Only sync if we've loaded the project (to prevent syncing empty state)
+  useSupabaseDiagramSync(
+    (hasLoaded && !isLoadingFromStorage) ? 
+      (supabaseProjectId || (id && id !== 'new' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id) ? id : null)) :
+      null
+  );
 
   // Show loading only if Supabase is configured and still loading
   const shouldShowLoading = isSupabaseAvailable() && projectIdLoading && id && id !== 'new';

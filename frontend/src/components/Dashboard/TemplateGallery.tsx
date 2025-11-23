@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Template } from '../../types/template';
-import { getLocalTemplates, getTemplatesByCategory } from '../../utils/templates';
+import { getTemplatesByCategory } from '../../utils/templates';
 import { FaTimes, FaServer, FaCloud, FaShoppingCart, FaDatabase, FaLayerGroup } from 'react-icons/fa';
 
 interface TemplateGalleryProps {
@@ -31,8 +31,6 @@ export function TemplateGallery({ onSelect, onClose }: TemplateGalleryProps) {
   const templates = useMemo(() => {
     return getTemplatesByCategory(selectedCategory);
   }, [selectedCategory]);
-
-  const allTemplates = getLocalTemplates();
 
   return (
     <div className="space-y-4">
