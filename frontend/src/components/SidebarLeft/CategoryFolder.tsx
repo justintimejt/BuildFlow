@@ -9,7 +9,7 @@ interface CategoryFolderProps {
   nodes: NodeTypeConfig[];
 }
 
-export function CategoryFolder({ categoryId, categoryLabel, nodes }: CategoryFolderProps) {
+export function CategoryFolder({ categoryId: _categoryId, categoryLabel, nodes }: CategoryFolderProps) {
   const [isExpanded, setIsExpanded] = useState(true);
 
   return (

@@ -150,7 +150,7 @@ function positionNodesByLevel(
 }
 
 // Center diagram in viewport
-function centerDiagram(nodes: Node[], padding: number): Node[] {
+function centerDiagram(nodes: Node[], _padding: number): Node[] {
   if (nodes.length === 0) return nodes;
   
   const minX = Math.min(...nodes.map(n => n.position.x));
@@ -283,7 +283,7 @@ export function optimizeForceDirectedLayout(
   
   // Initialize positions
   let positions = new Map(nodes.map(n => [n.id, { ...n.position }]));
-  const velocities = new Map(nodes.map(n => [n.id, { x: 0, y: 0 }]));
+  let velocities = new Map(nodes.map(n => [n.id, { x: 0, y: 0 }]));
   
   // Center point
   const centerX = 400;

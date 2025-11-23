@@ -14,11 +14,14 @@ export function useLoadProjectFromSupabase(projectId: string | null) {
       return;
     }
 
+    // Store supabaseClient in a const to satisfy TypeScript
+    const client = supabaseClient;
+
     let cancelled = false;
 
     async function loadProjectData() {
       try {
-        const { data, error } = await supabaseClient
+        const { data, error } = await client
           .from("projects")
           .select("diagram_json, name")
           .eq("id", projectId)
