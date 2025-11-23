@@ -10,7 +10,13 @@ import { Project } from '../types';
 import { EmptyState, ProjectGrid, ProjectList, CreateProjectModal } from '../components/Dashboard';
 import { Input } from '@/components/ui/input';
 import { DotScreenShader } from '@/components/ui/dot-shader-background';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, ChevronDown } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 export function DashboardPage() {
   const navigate = useNavigate();
@@ -198,22 +204,104 @@ export function DashboardPage() {
                 </button>
               </div>
 
-              <select
-                value={`${sortBy}-${sortOrder}`}
-                onChange={(e) => {
-                  const [by, order] = e.target.value.split('-');
-                  setSortBy(by as any);
-                  setSortOrder(order as 'asc' | 'desc');
-                }}
-                className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white/20 focus:border-white/20"
-              >
-                <option value="modified-desc" className="bg-black">Last Modified (Newest)</option>
-                <option value="modified-asc" className="bg-black">Last Modified (Oldest)</option>
-                <option value="created-desc" className="bg-black">Created (Newest)</option>
-                <option value="created-asc" className="bg-black">Created (Oldest)</option>
-                <option value="name-asc" className="bg-black">Name (A-Z)</option>
-                <option value="name-desc" className="bg-black">Name (Z-A)</option>
-              </select>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex items-center gap-2 px-3 py-2 bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg text-white hover:bg-white/10 hover:border-white/20 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/20 focus:border-white/20">
+                    <span className="text-sm font-medium">
+                      {sortBy === 'modified' && sortOrder === 'desc' && 'Last Modified (Newest)'}
+                      {sortBy === 'modified' && sortOrder === 'asc' && 'Last Modified (Oldest)'}
+                      {sortBy === 'created' && sortOrder === 'desc' && 'Created (Newest)'}
+                      {sortBy === 'created' && sortOrder === 'asc' && 'Created (Oldest)'}
+                      {sortBy === 'name' && sortOrder === 'asc' && 'Name (A-Z)'}
+                      {sortBy === 'name' && sortOrder === 'desc' && 'Name (Z-A)'}
+                    </span>
+                    <ChevronDown className="w-4 h-4 text-white/70" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="end"
+                  className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg shadow-2xl min-w-[200px] p-1"
+                >
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setSortBy('modified');
+                      setSortOrder('desc');
+                    }}
+                    className={`px-3 py-2 text-sm rounded-sm cursor-pointer transition-colors ${
+                      sortBy === 'modified' && sortOrder === 'desc'
+                        ? 'bg-white/10 text-white'
+                        : 'text-white/70 hover:bg-white/10 hover:text-white'
+                    }`}
+                  >
+                    Last Modified (Newest)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setSortBy('modified');
+                      setSortOrder('asc');
+                    }}
+                    className={`px-3 py-2 text-sm rounded-sm cursor-pointer transition-colors ${
+                      sortBy === 'modified' && sortOrder === 'asc'
+                        ? 'bg-white/10 text-white'
+                        : 'text-white/70 hover:bg-white/10 hover:text-white'
+                    }`}
+                  >
+                    Last Modified (Oldest)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setSortBy('created');
+                      setSortOrder('desc');
+                    }}
+                    className={`px-3 py-2 text-sm rounded-sm cursor-pointer transition-colors ${
+                      sortBy === 'created' && sortOrder === 'desc'
+                        ? 'bg-white/10 text-white'
+                        : 'text-white/70 hover:bg-white/10 hover:text-white'
+                    }`}
+                  >
+                    Created (Newest)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setSortBy('created');
+                      setSortOrder('asc');
+                    }}
+                    className={`px-3 py-2 text-sm rounded-sm cursor-pointer transition-colors ${
+                      sortBy === 'created' && sortOrder === 'asc'
+                        ? 'bg-white/10 text-white'
+                        : 'text-white/70 hover:bg-white/10 hover:text-white'
+                    }`}
+                  >
+                    Created (Oldest)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setSortBy('name');
+                      setSortOrder('asc');
+                    }}
+                    className={`px-3 py-2 text-sm rounded-sm cursor-pointer transition-colors ${
+                      sortBy === 'name' && sortOrder === 'asc'
+                        ? 'bg-white/10 text-white'
+                        : 'text-white/70 hover:bg-white/10 hover:text-white'
+                    }`}
+                  >
+                    Name (A-Z)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setSortBy('name');
+                      setSortOrder('desc');
+                    }}
+                    className={`px-3 py-2 text-sm rounded-sm cursor-pointer transition-colors ${
+                      sortBy === 'name' && sortOrder === 'desc'
+                        ? 'bg-white/10 text-white'
+                        : 'text-white/70 hover:bg-white/10 hover:text-white'
+                    }`}
+                  >
+                    Name (Z-A)
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </div>
