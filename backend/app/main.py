@@ -19,7 +19,6 @@ from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from .routes.health import router as health_router
 from .routes.chat import router as chat_router
-from .routes.deployment import router as deployment_router
 
 app = FastAPI(
     title="Visual System Editor Backend",
@@ -64,5 +63,4 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException):
 
 app.include_router(health_router, prefix="/api")
 app.include_router(chat_router, prefix="/api")
-app.include_router(deployment_router, prefix="/api")
 

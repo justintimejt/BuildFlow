@@ -231,7 +231,7 @@ From the root directory:
 3. **Add Authentication:** Implement Supabase Auth for multi-user support
 4. **Deploy:**
    - Frontend: Deploy to Vercel/Netlify
-   - Backend: Deploy to Railway/Render/Fly.io
+   - Backend: Deploy to Render/Fly.io
    - Supabase: Already hosted, just update env vars
 
 ## Environment Variables Summary

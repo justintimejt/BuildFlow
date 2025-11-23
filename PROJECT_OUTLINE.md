@@ -24,7 +24,7 @@
 **Type:** Web-based diagramming tool  
 **Target:** Pure frontend application with no backend dependencies  
 **Timeline:** Ultra-MVP focused on core functionality  
-**Deployment:** Static hosting (Vercel/Netlify/Railway)
+**Deployment:** Static hosting (Vercel/Netlify)
 
 ### Key Value Proposition
 A lightweight, browser-based visual editor that enables users to design system architectures through an intuitive drag-and-drop interface, with local persistence and image export capabilities.
@@ -960,7 +960,7 @@ project-root/
    - No build errors
 
 2. **Deployed Application**
-   - Live URL (Vercel/Netlify/Railway)
+   - Live URL (Vercel/Netlify)
    - Accessible to users
    - No backend dependencies
 

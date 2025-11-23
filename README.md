@@ -219,7 +219,7 @@ cd frontend
 npm run build
 
 # Backend
-# Deploy using your preferred Python hosting (Railway, Render, etc.)
+# Deploy using your preferred Python hosting (Render, Fly.io, etc.)
 ```
 
 ## Environment Variables
