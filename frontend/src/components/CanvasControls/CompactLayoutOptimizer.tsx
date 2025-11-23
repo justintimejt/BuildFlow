@@ -93,41 +93,6 @@ export function CompactLayoutOptimizer() {
     });
   }, [setNodes]);
 
-  const handleOptimize = useCallback(async () => {
-    if (nodes.length === 0) {
-      return;
-    }
-
-    setIsOptimizing(true);
-    setShowDropdown(false);
-
-    try {
-      // Save current positions for animation
-      const oldPositions = new Map(nodes.map(n => [n.id, { ...n.position }]));
-
-      // Calculate optimized positions (without updating state yet)
-      const optimizedNodes = calculateLayout(nodes, edges, selectedAlgorithm);
-      const newPositions = new Map(optimizedNodes.map(n => [n.id, { ...n.position }]));
-
-      // Animate to new positions using ReactFlow's setNodes
-      await animateNodePositions(oldPositions, newPositions, 400);
-
-      // After animation completes, update the project context with final positions
-      optimizedNodes.forEach(node => {
-        updateNodePosition(node.id, node.position);
-      });
-
-      // Fit view to show all nodes
-      setTimeout(() => {
-        fitView({ padding: 0.1, duration: 300 });
-      }, 100);
-    } catch (error) {
-      console.error('Error optimizing layout:', error);
-    } finally {
-      setIsOptimizing(false);
-    }
-  }, [nodes, edges, selectedAlgorithm, updateNodePosition, setNodes, fitView, animateNodePositions]);
-
   const isDisabled = nodes.length === 0 || isOptimizing;
 
   return (
@@ -155,11 +120,11 @@ export function CompactLayoutOptimizer() {
 
       {showDropdown && (
         <div 
-          className="absolute top-full left-0 mt-1 bg-white/5 backdrop-blur-sm border border-white/10 
+          className="absolute top-full left-0 mt-1 bg-white/10 backdrop-blur-md border border-white/10 
                       rounded-2xl shadow-2xl p-3 min-w-[240px] z-50"
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="mb-3">
+          <div>
             <label className="text-xs font-semibold text-white mb-2 block uppercase tracking-wide">
               Layout Algorithm
             </label>
@@ -192,7 +157,7 @@ export function CompactLayoutOptimizer() {
               </button>
               
               {showAlgorithmSelect && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-white/5 backdrop-blur-sm border border-white/10 
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white/10 backdrop-blur-md border border-white/10 
                                 rounded-lg shadow-2xl overflow-hidden z-50">
                   {(Object.keys(algorithmConfig) as LayoutAlgorithm[]).map((algorithm) => {
                     const config = algorithmConfig[algorithm];
@@ -202,13 +167,47 @@ export function CompactLayoutOptimizer() {
                     return (
                       <button
                         key={algorithm}
-                        onClick={(e) => {
+                        onClick={async (e) => {
                           e.stopPropagation();
                           setSelectedAlgorithm(algorithm);
                           setShowAlgorithmSelect(false);
+                          setShowDropdown(false);
+                          
+                          // Trigger optimization with the selected algorithm
+                          if (nodes.length > 0 && !isOptimizing) {
+                            setIsOptimizing(true);
+                            
+                            try {
+                              // Save current positions for animation
+                              const oldPositions = new Map(nodes.map(n => [n.id, { ...n.position }]));
+                              
+                              // Calculate optimized positions (without updating state yet)
+                              const optimizedNodes = calculateLayout(nodes, edges, algorithm);
+                              const newPositions = new Map(optimizedNodes.map(n => [n.id, { ...n.position }]));
+                              
+                              // Animate to new positions using ReactFlow's setNodes
+                              await animateNodePositions(oldPositions, newPositions, 400);
+                              
+                              // After animation completes, update the project context with final positions
+                              optimizedNodes.forEach(node => {
+                                updateNodePosition(node.id, node.position);
+                              });
+                              
+                              // Fit view to show all nodes
+                              setTimeout(() => {
+                                fitView({ padding: 0.1, duration: 300 });
+                              }, 100);
+                            } catch (error) {
+                              console.error('Error optimizing layout:', error);
+                            } finally {
+                              setIsOptimizing(false);
+                            }
+                          }
                         }}
+                        disabled={isDisabled}
                         className={`w-full px-3 py-2.5 text-sm text-left transition-all duration-200
                                    flex items-center gap-3 hover:bg-white/10
+                                   disabled:opacity-50 disabled:cursor-not-allowed
                                    ${isSelected ? 'bg-white/10 border-l-2 border-white' : 'border-l-2 border-transparent'}`}
                       >
                         <Icon className={`w-4 h-4 flex-shrink-0 ${isSelected ? 'text-white' : 'text-white/70'}`} />
@@ -235,29 +234,6 @@ export function CompactLayoutOptimizer() {
               )}
             </div>
           </div>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleOptimize();
-            }}
-            disabled={isOptimizing || nodes.length === 0}
-            className="w-full px-4 py-2.5 text-sm font-semibold bg-white text-black rounded-lg 
-                       hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed
-                       transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:shadow-none
-                       flex items-center justify-center gap-2"
-          >
-            {isOptimizing ? (
-              <>
-                <FaSpinner className="w-4 h-4 animate-spin" />
-                <span>Optimizing...</span>
-              </>
-            ) : (
-              <>
-                <FaMagic className="w-4 h-4" />
-                <span>Optimize Layout</span>
-              </>
-            )}
-          </button>
         </div>
       )}
     </div>
