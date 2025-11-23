@@ -24,7 +24,7 @@ export function HomePage() {
       {/* Dot Shader Background - Extended to cover entire page */}
       <div className="fixed inset-0 z-0 pointer-events-none">
         <div className="w-full h-full">
-          <DotScreenShader opacityMultiplier={4} />
+          <DotScreenShader opacityMultiplier={3} />
         </div>
       </div>
 
