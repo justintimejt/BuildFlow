@@ -40,13 +40,13 @@ export function ComponentLibrary({ isCollapsed = false, onToggleCollapse }: Comp
       <div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-3 z-10">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">Components</h2>
-          <button
-            onClick={toggleCollapse}
+        <button
+          onClick={toggleCollapse}
             className="p-1.5 hover:bg-gray-100 rounded transition-colors"
-            aria-label="Collapse sidebar"
-          >
+          aria-label="Collapse sidebar"
+        >
             <FaChevronLeft className="w-3.5 h-3.5 text-gray-500" />
-          </button>
+        </button>
         </div>
       </div>
       <div className="p-3 space-y-0.5">

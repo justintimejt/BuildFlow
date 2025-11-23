@@ -52,10 +52,10 @@ export function ChatPanel({ projectId }: ChatPanelProps) {
   };
 
   return (
-    <div className="h-full flex flex-col bg-background border-l border-border rounded-t-lg overflow-hidden">
-      <div className="px-4 py-3 border-b border-border bg-background flex items-center gap-2 rounded-t-lg">
+    <div className="h-full flex flex-col bg-background border-l border-border rounded-r-lg overflow-hidden">
+      <div className="px-4 py-3 border-b border-border bg-background flex items-center gap-2 rounded-tr-lg">
         <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-        <span className="text-sm font-semibold text-foreground">Model</span>
+        <span className="text-sm font-semibold text-foreground">AI Assistant</span>
         <div className="w-px h-4 bg-border"></div>
         <span className="text-sm text-muted-foreground">gemini-2.5-flash</span>
       </div>
