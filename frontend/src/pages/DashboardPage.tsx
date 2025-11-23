@@ -137,33 +137,6 @@ export function DashboardPage() {
         
         {/* Welcome Message and Create Button */}
         <div className="flex items-center justify-between">
-<<<<<<< HEAD
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => navigate('/')}
-              className="relative group cursor-pointer transition-transform hover:scale-105"
-              aria-label="Go to landing page"
-            >
-              <div className="absolute inset-0 bg-white/20 rounded-lg blur-sm opacity-50 group-hover:opacity-70 transition-opacity"></div>
-              <div className="relative bg-white/10 border border-white/20 p-3 rounded-lg group-hover:bg-white/15 transition-colors">
-                <FaProjectDiagram className="text-white text-2xl" />
-              </div>
-            </button>
-            <div>
-              <h1 className="text-2xl font-bold text-white">Projects</h1>
-              <p className="text-sm text-white/70 mt-1">
-                {searchQuery ? (
-                  <>
-                    {projects.length} of {allProjects.length} {projects.length === 1 ? 'project' : 'projects'}
-                  </>
-                ) : (
-                  <>
-                {projects.length} {projects.length === 1 ? 'project' : 'projects'}
-                  </>
-                )}
-              </p>
-            </div>
-=======
           <div>
             <h2 className="text-3xl font-bold text-white">
               Welcome {user?.displayName || 'User'},
@@ -171,7 +144,6 @@ export function DashboardPage() {
             <p className="text-sm text-white/70 mt-1">
               Manage your AI simulation projects and view insights
             </p>
->>>>>>> c46cb0f (dashboard ui + logout)
           </div>
           <button
             onClick={() => setShowCreateModal(true)}
