@@ -1,4 +1,4 @@
-import { useCallback, useRef, useEffect } from 'react';
+import { useCallback, useRef, useEffect, useMemo } from 'react';
 import {
   ReactFlow,
   Background,
@@ -37,23 +37,45 @@ export function Canvas({ onNodeSelect, selectedNodeId }: CanvasProps) {
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const reactFlowInstance = useRef<ReactFlowInstance | null>(null);
+  const draggingNodeIdsRef = useRef<Set<string>>(new Set());
 
-  // Sync with project state
+  // Sync with project state - but preserve positions of nodes being dragged
   useEffect(() => {
-    setNodes(projectNodes.map(n => ({ 
-      ...n, 
-      type: 'custom',
-      selected: n.id === selectedNodeId,
-      data: {
-        ...n.data,
-        type: n.type // Preserve original node type in data for CustomNode
-      }
-    })));
+    setNodes(prevNodes => {
+      const prevNodesMap = new Map(prevNodes.map(n => [n.id, n]));
+      return projectNodes.map(n => {
+        const prevNode = prevNodesMap.get(n.id);
+        // If node is being dragged, preserve its current position from React Flow
+        if (prevNode && draggingNodeIdsRef.current.has(n.id)) {
+          return {
+            ...prevNode,
+            type: 'custom',
+            selected: n.id === selectedNodeId,
+            data: {
+              ...prevNode.data,
+              ...n.data,
+              type: n.type // Preserve original node type in data for CustomNode
+            }
+          };
+        }
+        // Otherwise, use position from project state
+        return {
+          ...n,
+          type: 'custom',
+          selected: n.id === selectedNodeId,
+          data: {
+            ...n.data,
+            type: n.type // Preserve original node type in data for CustomNode
+          }
+        };
+      });
+    });
   }, [projectNodes, selectedNodeId, setNodes]);
 
-  useEffect(() => {
+  // Memoize styled edges to prevent unnecessary recreations during drag
+  const styledEdges = useMemo(() => {
     // Apply default styles to edges: smooth, dashed, and animated
-    const styledEdges: Edge[] = projectEdges.map(edge => {
+    return projectEdges.map(edge => {
       // Convert our custom Edge to React Flow Edge format
       const reactFlowEdge: Edge = {
         id: edge.id,
@@ -72,8 +94,12 @@ export function Canvas({ onNodeSelect, selectedNodeId }: CanvasProps) {
       };
       return reactFlowEdge;
     });
+  }, [projectEdges]);
+
+  // Sync styled edges to React Flow state
+  useEffect(() => {
     setEdges(styledEdges);
-  }, [projectEdges, setEdges]);
+  }, [styledEdges, setEdges]);
 
   const onConnect: OnConnect = useCallback(
     (params) => {
@@ -90,9 +116,15 @@ export function Canvas({ onNodeSelect, selectedNodeId }: CanvasProps) {
       changes.forEach((change) => {
         if (change.type === 'remove') {
           deleteNode(change.id);
-        } else if (change.type === 'position' && change.position && change.dragging === false) {
-          // Update position in project state when dragging ends
-          updateNodePosition(change.id, change.position);
+        } else if (change.type === 'position' && change.position) {
+          if (change.dragging === true) {
+            // Track that this node is being dragged
+            draggingNodeIdsRef.current.add(change.id);
+          } else if (change.dragging === false) {
+            // Dragging ended - remove from tracking and update position in project state
+            draggingNodeIdsRef.current.delete(change.id);
+            updateNodePosition(change.id, change.position);
+          }
         }
       });
     },

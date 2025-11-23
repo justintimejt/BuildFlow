@@ -87,7 +87,8 @@ body {
 .react-flow__edge[data-type="bezier"] .react-flow__edge-path {
   stroke-linecap: round;
   stroke-linejoin: round;
-  transition: d 0.2s ease;
+  /* Removed transition on 'd' attribute to prevent lag during node drag */
+  /* React Flow handles smooth updates internally */
 }
 
 /* Ensure all edge types render smoothly */
@@ -160,7 +161,8 @@ body {
 
 /* React Flow Nodes - Dark Theme */
 .react-flow__node {
-  transition: all 200ms;
+  /* Removed transition to prevent lag during drag - React Flow handles smooth updates internally */
+  /* Only apply transitions to specific properties that don't affect drag performance */
 }
 
 .react-flow__node.selected {
