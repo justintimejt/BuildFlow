@@ -16,17 +16,17 @@ export function CategoryFolder({ categoryId, categoryLabel, nodes }: CategoryFol
     <div className="mb-0.5">
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-center justify-between px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 rounded-md transition-colors group"
+        className="w-full flex items-center justify-between px-3 py-2 text-xs font-medium text-white hover:bg-white/10 rounded-md transition-all duration-200 group"
       >
         <div className="flex items-center gap-2">
           {isExpanded ? (
-            <FaChevronDown className="w-3 h-3 text-gray-400 group-hover:text-gray-600 transition-colors" />
+            <FaChevronDown className="w-3 h-3 text-white/70 group-hover:text-white transition-colors" />
           ) : (
-            <FaChevronRight className="w-3 h-3 text-gray-400 group-hover:text-gray-600 transition-colors" />
+            <FaChevronRight className="w-3 h-3 text-white/70 group-hover:text-white transition-colors" />
           )}
-          <span className="text-gray-700">{categoryLabel}</span>
+          <span className="text-white">{categoryLabel}</span>
         </div>
-        <span className="text-xs text-gray-400 font-normal">{nodes.length}</span>
+        <span className="text-xs text-white/50 font-normal">{nodes.length}</span>
       </button>
       {isExpanded && (
         <div className="ml-6 mt-0.5 space-y-0.5">

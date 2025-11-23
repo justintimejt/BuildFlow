@@ -64,7 +64,7 @@ export function Canvas({ onNodeSelect, selectedNodeId }: CanvasProps) {
         label: edge.label,
         style: {
           strokeDasharray: '8,4', // Dashed line pattern
-          stroke: '#6366f1', // Indigo color
+          stroke: 'rgba(255, 255, 255, 0.6)', // White with 60% opacity for dark theme
           strokeWidth: 2,
           ...(edge.style || {}), // Allow overrides from our custom Edge type
         },
@@ -188,11 +188,28 @@ export function Canvas({ onNodeSelect, selectedNodeId }: CanvasProps) {
         onInit={onInit}
         nodeTypes={nodeTypes}
         fitView
-        className="bg-gray-100"
+        style={{ backgroundColor: '#1d1d1d' }}
       >
-        <Background />
-        <Controls />
-        <MiniMap />
+        <Background color="#999999" gap={16} />
+        <Controls 
+          className="react-flow-controls-dark"
+        />
+        <MiniMap 
+          className="react-flow-minimap-dark"
+          style={{
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            backdropFilter: 'blur(4px)',
+            borderRadius: '0.5rem'
+          }}
+          nodeColor={(node) => {
+            if (node.selected) {
+              return 'rgba(255, 255, 255, 0.8)';
+            }
+            return 'rgba(255, 255, 255, 0.3)';
+          }}
+          maskColor="rgba(0, 0, 0, 0.5)"
+        />
         {/* Canvas Controls - positioned in top-left corner */}
         <Panel position="top-left" className="m-2">
           <CanvasControls />
