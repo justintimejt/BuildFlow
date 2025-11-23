@@ -2,6 +2,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabaseClient, isSupabaseAvailable } from '../lib/supabaseClient';
+import { DotScreenShader } from '@/components/ui/dot-shader-background';
 
 export function AuthCallbackPage() {
   const navigate = useNavigate();
@@ -69,8 +70,16 @@ export function AuthCallbackPage() {
   }, [navigate]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50">
-      <p className="text-sm text-gray-600">Finishing sign-in…</p>
+    <div className="min-h-screen bg-black overflow-x-hidden relative flex items-center justify-center">
+      {/* Dot Shader Background */}
+      <div className="fixed inset-0 z-0 pointer-events-none">
+        <div className="w-full h-full">
+          <DotScreenShader />
+        </div>
+      </div>
+      <div className="relative z-10 text-center">
+        <p className="text-xl font-light text-white mix-blend-exclusion">Finishing sign-in…</p>
+      </div>
     </div>
   );
 }
