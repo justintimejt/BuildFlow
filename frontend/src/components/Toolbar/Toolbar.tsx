@@ -286,21 +286,21 @@ export function Toolbar({ projectId: toolbarProjectId }: ToolbarProps) {
   };
 
   return (
-    <div className="h-14 bg-white border-b border-gray-200 flex items-center gap-2 px-4 shadow-sm">
+    <div className="h-14 bg-black/0 border-b border-white/10 flex items-center gap-2 px-4 shadow-sm backdrop-blur-sm relative z-20">
       <button
         onClick={() => navigate('/dashboard')}
-        className="flex items-center justify-center w-10 h-10 text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+        className="flex items-center justify-center w-10 h-10 text-white/70 hover:text-white hover:bg-white/10 rounded-md transition-all duration-200"
         title="Back to Dashboard"
         aria-label="Back to Dashboard"
       >
         <FaHome className="w-5 h-5" />
       </button>
       
-      <div className="w-px h-6 bg-gray-300" />
+      <div className="w-px h-6 bg-white/10" />
       
       <button
         onClick={handleSave}
-        className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+        className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white bg-white/10 border border-white/20 rounded-md hover:bg-white/20 transition-all duration-200"
         title="Save to localStorage"
       >
         <FaSave />
@@ -309,7 +309,7 @@ export function Toolbar({ projectId: toolbarProjectId }: ToolbarProps) {
 
       <button
         onClick={handleImportJSON}
-        className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+        className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white bg-white/10 border border-white/20 rounded-md hover:bg-white/20 transition-all duration-200"
         title="Import JSON file"
       >
         <FaFolderOpen />
@@ -326,7 +326,7 @@ export function Toolbar({ projectId: toolbarProjectId }: ToolbarProps) {
 
       <button
         onClick={handleExportJSON}
-        className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+        className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white bg-white/10 border border-white/20 rounded-md hover:bg-white/20 transition-all duration-200"
         title="Export as JSON"
       >
         <FaFileExport />
@@ -335,7 +335,7 @@ export function Toolbar({ projectId: toolbarProjectId }: ToolbarProps) {
 
       <button
         onClick={handleExportPNG}
-        className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-blue-700 bg-blue-100 rounded-md hover:bg-blue-200 transition-colors"
+        className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white bg-white/10 border border-white/20 rounded-md hover:bg-white/20 transition-all duration-200"
         title="Export as PNG"
       >
         <FaDownload />
@@ -346,7 +346,7 @@ export function Toolbar({ projectId: toolbarProjectId }: ToolbarProps) {
 
       <button
         onClick={handleClear}
-        className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-red-700 bg-red-100 rounded-md hover:bg-red-200 transition-colors"
+        className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-red-400 bg-red-400/10 border border-red-400/20 rounded-md hover:bg-red-400/20 transition-all duration-200"
         title="Clear canvas"
       >
         <FaTrash />

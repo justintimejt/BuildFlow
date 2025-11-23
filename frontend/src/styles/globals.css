@@ -95,3 +95,151 @@ body {
   shape-rendering: geometricPrecision;
 }
 
+/* React Flow Controls - Dark Theme with Glassmorphism */
+.react-flow-controls-dark {
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.react-flow-controls-dark button {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  color: #ffffff !important;
+  border-radius: 0.5rem !important;
+  transition: all 200ms !important;
+}
+
+.react-flow-controls-dark button:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+.react-flow-controls-dark button:active {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+/* Custom Scrollbar - Dark Theme with Glassmorphism */
+/* Webkit browsers (Chrome, Safari, Edge) */
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border-radius: 10px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  transition: all 200ms;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+*::-webkit-scrollbar-thumb:active {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+*::-webkit-scrollbar-corner {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.1) rgba(0, 0, 0, 0.2);
+}
+
+/* React Flow Nodes - Dark Theme */
+.react-flow__node {
+  transition: all 200ms;
+}
+
+.react-flow__node.selected {
+  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.3));
+}
+
+/* React Flow Handles (Connection Points) - Dark Theme */
+.react-flow__handle {
+  background: rgba(255, 255, 255, 0.2) !important;
+  border: 2px solid rgba(255, 255, 255, 0.3) !important;
+  width: 12px !important;
+  height: 12px !important;
+  border-radius: 50% !important;
+  transition: all 200ms !important;
+}
+
+.react-flow__handle:hover {
+  background: rgba(255, 255, 255, 0.4) !important;
+  border-color: rgba(255, 255, 255, 0.5) !important;
+  transform: scale(1.2);
+}
+
+.react-flow__handle.react-flow__handle-connecting {
+  background: rgba(255, 255, 255, 0.6) !important;
+  border-color: rgba(255, 255, 255, 0.8) !important;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+}
+
+.react-flow__handle.react-flow__handle-valid {
+  background: rgba(255, 255, 255, 0.5) !important;
+  border-color: rgba(255, 255, 255, 0.7) !important;
+}
+
+/* React Flow Edges - Dark Theme */
+.react-flow__edge {
+  transition: all 200ms;
+}
+
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: rgba(255, 255, 255, 0.9) !important;
+  stroke-width: 3 !important;
+  filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.4));
+}
+
+.react-flow__edge-path {
+  stroke: rgba(255, 255, 255, 0.6) !important;
+}
+
+.react-flow__edge:hover .react-flow__edge-path {
+  stroke: rgba(255, 255, 255, 0.8) !important;
+  stroke-width: 2.5 !important;
+}
+
+/* React Flow Edge Markers (Arrows) - Dark Theme */
+.react-flow__arrowhead {
+  fill: rgba(255, 255, 255, 0.6) !important;
+}
+
+.react-flow__edge.selected .react-flow__arrowhead {
+  fill: rgba(255, 255, 255, 0.9) !important;
+}
+
+/* React Flow MiniMap - Dark Theme */
+.react-flow-minimap-dark {
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.react-flow-minimap-dark .react-flow__minimap-mask {
+  fill: rgba(0, 0, 0, 0.5);
+}
+
+.react-flow-minimap-dark .react-flow__minimap-node {
+  fill: rgba(255, 255, 255, 0.3);
+  stroke: rgba(255, 255, 255, 0.1);
+}
+
+.react-flow-minimap-dark .react-flow__minimap-node.selected {
+  fill: rgba(255, 255, 255, 0.8);
+  stroke: rgba(255, 255, 255, 0.3);
+}
+

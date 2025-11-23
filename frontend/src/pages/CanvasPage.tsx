@@ -14,6 +14,7 @@ import { isSupabaseAvailable } from '../lib/supabaseClient';
 import { loadProjectFromStorage, getStoredProjects } from '../utils/storage';
 import { useTemplates } from '../hooks/useTemplates';
 import { saveProjectToStorage } from '../utils/storage';
+import { DotScreenShader } from '@/components/ui/dot-shader-background';
 
 function CanvasContent() {
   const { id } = useParams<{ id: string }>();
@@ -156,16 +157,28 @@ function CanvasContent() {
 
   if (shouldShowLoading) {
     return (
-      <div className="h-screen flex items-center justify-center">
-        <div className="text-gray-600">Loading project...</div>
+      <div className="h-screen flex items-center justify-center bg-black relative">
+        <div className="fixed inset-0 z-0 pointer-events-none">
+          <div className="w-full h-full">
+            <DotScreenShader />
+          </div>
+        </div>
+        <div className="text-white/70 relative z-10">Loading project...</div>
       </div>
     );
   }
 
   return (
-    <div className="h-screen flex flex-col">
+    <div className="h-screen flex flex-col bg-black relative overflow-hidden">
+      {/* Dot Shader Background */}
+      <div className="fixed inset-0 z-0 pointer-events-none">
+        <div className="w-full h-full">
+          <DotScreenShader />
+        </div>
+      </div>
+
       <Toolbar projectId={id && id !== 'new' ? id : projectId} />
-      <div className="flex-1 flex overflow-hidden relative">
+      <div className="flex-1 flex overflow-hidden relative z-10">
         <div className={`${leftSidebarCollapsed ? 'w-0' : 'w-64'} flex-shrink-0 transition-all duration-300 ease-in-out ${leftSidebarCollapsed ? 'overflow-visible' : 'overflow-hidden'}`}>
           <ComponentLibrary 
             isCollapsed={leftSidebarCollapsed}

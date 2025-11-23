@@ -17,13 +17,13 @@ export function ComponentLibrary({ isCollapsed = false, onToggleCollapse }: Comp
 
   if (collapsed) {
     return (
-      <div className="h-full bg-white border-r border-gray-200 relative">
+      <div className="h-full bg-black/0 border-r border-white/10 relative backdrop-blur-sm">
         <button
           onClick={toggleCollapse}
-          className="absolute top-4 right-0 translate-x-1/2 z-10 bg-white border border-gray-200 rounded-full p-2 shadow-md hover:bg-gray-50 transition-colors"
+          className="absolute top-4 right-0 translate-x-1/2 z-10 bg-white/5 backdrop-blur-sm border border-white/10 rounded-full p-2 shadow-2xl hover:bg-white/10 transition-all duration-200"
           aria-label="Expand sidebar"
         >
-          <FaChevronRight className="w-3 h-3 text-gray-600" />
+          <FaChevronRight className="w-3 h-3 text-white/70" />
         </button>
       </div>
     );
@@ -36,16 +36,16 @@ export function ComponentLibrary({ isCollapsed = false, onToggleCollapse }: Comp
   })).filter(category => category.nodes.length > 0);
 
   return (
-    <div className="h-full bg-white border-r border-gray-200 overflow-y-auto relative">
-      <div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-3 z-10">
+    <div className="h-full bg-black/0 border-r border-white/10 overflow-y-auto relative backdrop-blur-sm">
+      <div className="sticky top-0 bg-black/0 border-b border-white/10 px-4 py-3 z-10 backdrop-blur-sm">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">Components</h2>
+          <h2 className="text-sm font-semibold text-white uppercase tracking-wide">Components</h2>
         <button
           onClick={toggleCollapse}
-            className="p-1.5 hover:bg-gray-100 rounded transition-colors"
+            className="p-1.5 hover:bg-white/10 rounded transition-all duration-200"
           aria-label="Collapse sidebar"
         >
-            <FaChevronLeft className="w-3.5 h-3.5 text-gray-500" />
+            <FaChevronLeft className="w-3.5 h-3.5 text-white/70" />
         </button>
         </div>
       </div>

@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from 'react';
 import { useChatWithGemini } from '../../hooks/useChatWithGemini';
 import { isSupabaseAvailable } from '../../lib/supabaseClient';
 import { FaChevronUp, FaChevronDown, FaPaperPlane } from 'react-icons/fa';
-import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
@@ -96,32 +95,29 @@ export function ChatBar({ projectId, leftSidebarCollapsed = false }: ChatBarProp
   return (
     <div
       className={cn(
-        "fixed bottom-0 z-40 bg-background border-t border-border shadow-lg backdrop-blur-sm",
+        "fixed bottom-0 z-40 bg-white/5 backdrop-blur-sm border-t border-white/10 shadow-2xl rounded-t-2xl overflow-hidden",
         "transition-all duration-300 ease-in-out",
         isExpanded ? 'h-[400px]' : 'h-[60px]'
       )}
       style={{
         left: `${chatBarLeft}px`,
         width: `${chatBarWidth}px`,
-        backgroundColor: 'hsl(var(--background))',
       }}
     >
       {/* Header Bar */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted" style={{ backgroundColor: 'hsl(var(--muted))' }}>
+      <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-white/5">
         <div className="flex items-center gap-2">
           <div className="relative">
             <div className="w-2 h-2 bg-green-500 rounded-full"></div>
             <div className="absolute inset-0 w-2 h-2 bg-green-500 rounded-full animate-ping opacity-75"></div>
           </div>
-          <span className="text-sm font-semibold text-foreground">Luna</span>
-          <div className="w-px h-4 bg-border"></div>
-          <span className="text-sm font-normal text-muted-foreground">gemini-2.5-flash</span>
+          <span className="text-sm font-semibold text-white">Luna</span>
+          <div className="w-px h-4 bg-white/10"></div>
+          <span className="text-sm font-normal text-white/70">gemini-2.5-flash</span>
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
+        <button
           onClick={() => setIsExpanded(!isExpanded)}
-          className="h-8 w-8"
+          className="h-8 w-8 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 rounded-md transition-all duration-200"
           aria-label={isExpanded ? 'Minimize chat' : 'Expand chat'}
         >
           {isExpanded ? (
@@ -129,27 +125,27 @@ export function ChatBar({ projectId, leftSidebarCollapsed = false }: ChatBarProp
           ) : (
             <FaChevronUp className="h-4 w-4" />
           )}
-        </Button>
+        </button>
       </div>
 
       {/* Messages Area */}
       {isExpanded && (
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 h-[280px] bg-background" style={{ backgroundColor: 'hsl(var(--background))' }}>
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 h-[280px] bg-black/0">
           {isDisabled ? (
-            <div className="text-center text-muted-foreground mt-8">
-              <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 max-w-md mx-auto">
-                <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200 mb-2">⚠️ Supabase Configuration Required</p>
-                <p className="text-xs text-yellow-700 dark:text-yellow-300">
-                  The chat feature requires Supabase to be configured. Please set up your Supabase credentials in <code className="bg-yellow-100 dark:bg-yellow-900/40 px-1 rounded">frontend/.env</code>.
+            <div className="text-center text-white/70 mt-8">
+              <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-4 max-w-md mx-auto">
+                <p className="text-sm font-medium text-white mb-2">⚠️ Supabase Configuration Required</p>
+                <p className="text-xs text-white/70">
+                  The chat feature requires Supabase to be configured. Please set up your Supabase credentials in <code className="bg-white/10 px-1 rounded">frontend/.env</code>.
                 </p>
               </div>
             </div>
           ) : (
             <>
               {messages.length === 0 && (
-                <div className="text-center text-muted-foreground mt-8">
+                <div className="text-center text-white/70 mt-8">
                   <p className="text-sm">Start chatting with Luna to modify your diagram.</p>
-                  <p className="text-xs mt-2 text-muted-foreground/70">Example: "Add a database node"</p>
+                  <p className="text-xs mt-2 text-white/50">Example: "Add a database node"</p>
                 </div>
               )}
 
@@ -163,7 +159,7 @@ export function ChatBar({ projectId, leftSidebarCollapsed = false }: ChatBarProp
                 >
                   {message.role === 'assistant' && (
                     <Avatar className="h-8 w-8 shrink-0">
-                      <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+                      <AvatarFallback className="bg-white/10 text-white text-xs border border-white/10">
                         AI
                       </AvatarFallback>
                     </Avatar>
@@ -172,8 +168,8 @@ export function ChatBar({ projectId, leftSidebarCollapsed = false }: ChatBarProp
                     className={cn(
                       "max-w-[75%] rounded-lg px-4 py-2.5",
                       message.role === 'user'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted text-foreground'
+                        ? 'bg-white text-black'
+                        : 'bg-white/5 text-white border border-white/10'
                     )}
                   >
                     <div className="text-xs font-medium mb-1.5 opacity-70">
@@ -185,7 +181,7 @@ export function ChatBar({ projectId, leftSidebarCollapsed = false }: ChatBarProp
                   </div>
                   {message.role === 'user' && (
                     <Avatar className="h-8 w-8 shrink-0">
-                      <AvatarFallback className="bg-secondary text-secondary-foreground text-xs">
+                      <AvatarFallback className="bg-white text-black text-xs">
                         U
                       </AvatarFallback>
                     </Avatar>
@@ -196,18 +192,18 @@ export function ChatBar({ projectId, leftSidebarCollapsed = false }: ChatBarProp
               {isLoading && (
                 <div className="flex justify-start gap-3">
                   <Avatar className="h-8 w-8 shrink-0">
-                    <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+                    <AvatarFallback className="bg-white/10 text-white text-xs border border-white/10">
                       AI
                     </AvatarFallback>
                   </Avatar>
-                  <div className="bg-muted rounded-lg px-4 py-2.5">
+                  <div className="bg-white/5 border border-white/10 rounded-lg px-4 py-2.5">
                     <div className="flex items-center gap-2">
                       <div className="flex gap-1">
-                        <div className="w-2 h-2 bg-muted-foreground/40 rounded-full animate-bounce" />
-                        <div className="w-2 h-2 bg-muted-foreground/40 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
-                        <div className="w-2 h-2 bg-muted-foreground/40 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                        <div className="w-2 h-2 bg-white/40 rounded-full animate-bounce" />
+                        <div className="w-2 h-2 bg-white/40 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
+                        <div className="w-2 h-2 bg-white/40 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
                       </div>
-                      <span className="text-xs text-muted-foreground">Thinking...</span>
+                      <span className="text-xs text-white/70">Thinking...</span>
                     </div>
                   </div>
                 </div>
@@ -223,10 +219,9 @@ export function ChatBar({ projectId, leftSidebarCollapsed = false }: ChatBarProp
       <form
         onSubmit={handleSubmit}
         className={cn(
-          "px-4 py-3 border-t border-border bg-background",
+          "px-4 py-3 border-t border-white/10 bg-black/0",
           !isExpanded && 'flex items-center gap-2'
         )}
-        style={{ backgroundColor: 'hsl(var(--background))' }}
       >
         <div className="flex gap-2 items-end">
           <Textarea
@@ -244,19 +239,22 @@ export function ChatBar({ projectId, leftSidebarCollapsed = false }: ChatBarProp
             disabled={isLoading || isDisabled}
             className={cn(
               "resize-none min-h-[40px] max-h-[120px]",
+              "bg-white/5 border border-white/10 text-white placeholder:text-white/50",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:border-white/20",
+              "disabled:opacity-50 disabled:cursor-not-allowed",
+              "transition-all duration-200",
               !isExpanded && 'min-h-[40px]'
             )}
             rows={1}
           />
-          <Button
+          <button
             type="submit"
             disabled={isLoading || !input.trim() || isDisabled}
-            size="icon"
-            className="h-10 w-10 shrink-0"
+            className="h-10 w-10 shrink-0 flex items-center justify-center bg-white text-black rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:transform-none"
             aria-label="Send message"
           >
             <FaPaperPlane className="h-4 w-4" />
-          </Button>
+          </button>
         </div>
       </form>
     </div>
