@@ -6,6 +6,7 @@ import { useExport } from '../../hooks/useExport';
 import { useProjectId } from '../../hooks/useProjectId';
 import { supabaseClient, isSupabaseAvailable } from '../../lib/supabaseClient';
 import { getOrCreateSessionId } from '../../lib/session';
+import { getCurrentUserId } from '../../lib/authHelpers';
 import { getStoredProjects, updateStoredProjectSupabaseId, updateStoredProjectThumbnail } from '../../utils/storage';
 import { useReactFlowContext } from '../../contexts/ReactFlowContext';
 import { captureCanvasThumbnail } from '../../utils/canvasCapture';
@@ -128,16 +129,24 @@ export function Toolbar({ projectId: toolbarProjectId }: ToolbarProps) {
           };
           
           const sessionId = getOrCreateSessionId();
+          const userId = await getCurrentUserId(); // Get current user ID
           
           if (supabaseId) {
             // Update existing Supabase project
+            const updateData: any = {
+              name: projectName,
+              diagram_json: projectWithName,
+              updated_at: new Date().toISOString(),
+            };
+            
+            // Set user_id if authenticated (this will update existing projects)
+            if (userId) {
+              updateData.user_id = userId;
+            }
+            
             const { error } = await supabaseClient
               .from("projects")
-              .update({
-                name: projectName,
-                diagram_json: projectWithName,
-                updated_at: new Date().toISOString(),
-              })
+              .update(updateData)
               .eq("id", supabaseId);
             
             if (error) {
@@ -145,30 +154,42 @@ export function Toolbar({ projectId: toolbarProjectId }: ToolbarProps) {
               throw error;
             }
           } else {
-            // Check if there's already a Supabase project for this session
-            // (might have been created by useProjectId or previous chat)
-            const { data: existingProjects } = await supabaseClient
+            // Check if there's already a Supabase project for this user/session
+            let query = supabaseClient
               .from("projects")
-              .select("id")
-              .eq("session_id", sessionId)
+              .select("id");
+            
+            if (userId) {
+              query = query.eq("user_id", userId);
+            } else {
+              query = query.eq("session_id", sessionId);
+            }
+            
+            const { data: existingProjects } = await query
               .order("created_at", { ascending: true })
               .limit(1);
             
             let newSupabaseId: string | null = null;
             
             if (existingProjects && existingProjects.length > 0) {
-              // Use existing Supabase project instead of creating a new one
+              // Use existing Supabase project
               newSupabaseId = existingProjects[0].id;
               console.log(`ℹ️  Using existing Supabase project: ${newSupabaseId}`);
               
-              // Update the existing project with the new data
+              const updateData: any = {
+                name: projectName,
+                diagram_json: projectWithName,
+                updated_at: new Date().toISOString(),
+              };
+              
+              // Set user_id if authenticated
+              if (userId) {
+                updateData.user_id = userId;
+              }
+              
               const { error: updateError } = await supabaseClient
                 .from("projects")
-                .update({
-                  name: projectName,
-                  diagram_json: projectWithName,
-                  updated_at: new Date().toISOString(),
-                })
+                .update(updateData)
                 .eq("id", newSupabaseId);
               
               if (updateError) {
@@ -177,13 +198,20 @@ export function Toolbar({ projectId: toolbarProjectId }: ToolbarProps) {
               }
             } else {
               // Create new Supabase project
+              const insertData: any = {
+                session_id: sessionId,
+                name: projectName,
+                diagram_json: projectWithName,
+              };
+              
+              // Set user_id if authenticated
+              if (userId) {
+                insertData.user_id = userId;
+              }
+              
               const { data: created, error } = await supabaseClient
                 .from("projects")
-                .insert({
-                  session_id: sessionId,
-                  name: projectName,
-                  diagram_json: projectWithName,
-                })
+                .insert(insertData)
                 .select("id")
                 .single();
               
@@ -194,7 +222,7 @@ export function Toolbar({ projectId: toolbarProjectId }: ToolbarProps) {
                 newSupabaseId = created.id;
                 console.log(`✅ Created new Supabase project: ${newSupabaseId}`);
                 
-                // If there was a previous projectId (from useProjectId), migrate chat messages
+                // Migrate chat messages if needed
                 if (currentSupabaseProjectId && currentSupabaseProjectId !== newSupabaseId) {
                   console.log(`🔄 Migrating chat messages from ${currentSupabaseProjectId} to ${newSupabaseId}`);
                   try {
@@ -205,23 +233,18 @@ export function Toolbar({ projectId: toolbarProjectId }: ToolbarProps) {
                     
                     if (migrateError) {
                       console.error("Failed to migrate chat messages:", migrateError);
-                      // Don't throw - migration failure shouldn't block save
                     } else {
                       console.log(`✅ Successfully migrated chat messages to new project`);
                     }
                   } catch (migrateErr) {
                     console.error("Error migrating chat messages:", migrateErr);
-                    // Don't throw - migration failure shouldn't block save
                   }
                 }
               }
             }
             
             if (newSupabaseId) {
-              // Store the Supabase ID in localStorage
               updateStoredProjectSupabaseId(savedId, newSupabaseId);
-              
-              // Dispatch custom event to notify other components (including chat)
               window.dispatchEvent(new CustomEvent('projectSupabaseIdUpdated', {
                 detail: { 
                   localStorageId: savedId, 
@@ -233,7 +256,7 @@ export function Toolbar({ projectId: toolbarProjectId }: ToolbarProps) {
           }
         } catch (error) {
           console.error("Failed to sync project to Supabase:", error);
-          // Don't throw - allow localStorage save to succeed even if Supabase fails
+          // Don't throw - allow localStorage save to succeed
         }
       }
       

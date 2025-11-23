@@ -2,6 +2,9 @@ import { useState, useCallback, useMemo, useEffect } from 'react';
 import { StoredProject, getStoredProjects } from '../utils/storage';
 import { getLocalTemplates } from '../utils/templates';
 import { Template } from '../types/template';
+import { supabaseClient, isSupabaseAvailable } from '../lib/supabaseClient';
+import { getCurrentUserId } from '../lib/authHelpers';
+import type { Project } from '../types';
 
 export type ViewMode = 'grid' | 'list';
 export type SortBy = 'name' | 'created' | 'modified';
@@ -18,12 +21,76 @@ export const useDashboard = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load projects from storage
-  const loadProjects = useCallback(() => {
+  // Load projects from both localStorage and Supabase
+  const loadProjects = useCallback(async () => {
     try {
-      const stored = getStoredProjects();
-      // Calculate node/edge counts if not present
-      const enriched = stored.map(p => ({
+      // Always load from localStorage first (for offline support)
+      const localProjects = getStoredProjects();
+      
+      // If Supabase is available and user is authenticated, load from Supabase
+      if (isSupabaseAvailable() && supabaseClient) {
+        const userId = await getCurrentUserId();
+        
+        if (userId) {
+          // User is authenticated: load projects from Supabase by user_id
+          try {
+            const { data: supabaseProjects, error } = await supabaseClient
+              .from("projects")
+              .select("id, name, diagram_json, created_at, updated_at")
+              .eq("user_id", userId)
+              .order("updated_at", { ascending: false });
+            
+            if (error) {
+              console.error("Failed to load projects from Supabase:", error);
+            } else if (supabaseProjects && supabaseProjects.length > 0) {
+              // Convert Supabase projects to StoredProject format
+              const convertedProjects: StoredProject[] = supabaseProjects.map((sp: any) => {
+                const diagram = sp.diagram_json as Project;
+                return {
+                  id: sp.id, // Use Supabase ID as the ID
+                  name: sp.name || diagram.name || 'Untitled Project',
+                  description: diagram.description,
+                  project: diagram,
+                  createdAt: sp.created_at || diagram.createdAt || new Date().toISOString(),
+                  updatedAt: sp.updated_at || diagram.updatedAt || new Date().toISOString(),
+                  nodeCount: diagram.nodes?.length || 0,
+                  edgeCount: diagram.edges?.length || 0,
+                  supabaseId: sp.id, // Store Supabase ID
+                };
+              });
+              
+              // Merge with localStorage projects (Supabase takes precedence)
+              // Create a map of Supabase projects by ID
+              const supabaseMap = new Map(convertedProjects.map(p => [p.supabaseId || p.id, p]));
+              
+              // Add localStorage projects that aren't in Supabase
+              localProjects.forEach(localProject => {
+                const supabaseId = localProject.supabaseId;
+                if (!supabaseId || !supabaseMap.has(supabaseId)) {
+                  // This is a local-only project, include it
+                  convertedProjects.push(localProject);
+                }
+              });
+              
+              // Calculate node/edge counts
+              const enriched = convertedProjects.map(p => ({
+                ...p,
+                nodeCount: p.nodeCount ?? p.project.nodes?.length ?? 0,
+                edgeCount: p.edgeCount ?? p.project.edges?.length ?? 0
+              }));
+              
+              setProjects(enriched);
+              setIsLoading(false);
+              return;
+            }
+          } catch (error) {
+            console.error("Error loading projects from Supabase:", error);
+          }
+        }
+      }
+      
+      // Fallback: use localStorage projects only
+      const enriched = localProjects.map(p => ({
         ...p,
         nodeCount: p.nodeCount ?? p.project.nodes?.length ?? 0,
         edgeCount: p.edgeCount ?? p.project.edges?.length ?? 0

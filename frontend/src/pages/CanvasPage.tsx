@@ -13,6 +13,7 @@ import { useLoadProjectFromSupabase } from '../hooks/useLoadProjectFromSupabase'
 import { isSupabaseAvailable, supabaseClient } from '../lib/supabaseClient';
 import { loadProjectFromStorage, getStoredProjects, updateStoredProjectSupabaseId } from '../utils/storage';
 import { getOrCreateSessionId } from '../lib/session';
+import { getCurrentUserId } from '../lib/authHelpers';
 import { useTemplates } from '../hooks/useTemplates';
 import { saveProjectToStorage } from '../utils/storage';
 import { DotScreenShader } from '@/components/ui/dot-shader-background';
@@ -119,19 +120,27 @@ function CanvasContent() {
           }
           
           const sessionId = getOrCreateSessionId();
+          const userId = await getCurrentUserId(); // Get current user ID
           
           const projectWithName = {
             ...project,
             name: projectName,
           };
           
+          const insertData: any = {
+            session_id: sessionId,
+            name: projectName,
+            diagram_json: projectWithName,
+          };
+          
+          // Set user_id if authenticated
+          if (userId) {
+            insertData.user_id = userId;
+          }
+          
           const { data: created, error } = await supabaseClient
             .from("projects")
-            .insert({
-              session_id: sessionId,
-              name: projectName,
-              diagram_json: projectWithName,
-            })
+            .insert(insertData)
             .select("id")
             .single();
           

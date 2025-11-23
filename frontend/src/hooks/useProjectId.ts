@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabaseClient, isSupabaseAvailable } from "../lib/supabaseClient";
 import { getOrCreateSessionId } from "../lib/session";
+import { getCurrentUserId } from "../lib/authHelpers";
 
 export function useProjectId(initialName: string = "Untitled Project") {
   const [projectId, setProjectId] = useState<string | null>(null);
@@ -25,10 +26,23 @@ export function useProjectId(initialName: string = "Untitled Project") {
       }
 
       try {
-        const { data, error } = await supabaseClient
+        // Get current user ID if authenticated
+        const userId = await getCurrentUserId();
+        
+        // Build query: filter by user_id if authenticated, otherwise by session_id
+        let query = supabaseClient
           .from("projects")
-          .select("id")
-          .eq("session_id", sessionId)
+          .select("id");
+        
+        if (userId) {
+          // Authenticated user: query by user_id
+          query = query.eq("user_id", userId);
+        } else {
+          // Anonymous user: query by session_id
+          query = query.eq("session_id", sessionId);
+        }
+        
+        const { data, error } = await query
           .order("created_at", { ascending: true })
           .limit(1)
           .maybeSingle();
@@ -54,13 +68,21 @@ export function useProjectId(initialName: string = "Untitled Project") {
             updatedAt: new Date().toISOString(),
           };
 
+          // Prepare insert data
+          const insertData: any = {
+            session_id: sessionId, // Keep session_id for backward compatibility
+            name: initialName,
+            diagram_json: emptyDiagram,
+          };
+
+          // Set user_id if authenticated
+          if (userId) {
+            insertData.user_id = userId;
+          }
+
           const { data: created, error: createError } = await supabaseClient
             .from("projects")
-            .insert({
-              session_id: sessionId,
-              name: initialName,
-              diagram_json: emptyDiagram,
-            })
+            .insert(insertData)
             .select("id")
             .single();
 
