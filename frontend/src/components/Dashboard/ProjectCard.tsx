@@ -172,15 +172,13 @@ export function ProjectCard({
         {/* Metadata */}
         <div className="flex items-center gap-4 text-xs text-white/70 mb-4">
           <span className="flex items-center gap-1">
-            <span className="w-2 h-2 bg-white/70 rounded-full"></span>
+            <span className="w-2 h-2 bg-[#51a2ff] rounded-full"></span>
             {project.nodeCount || 0} nodes
           </span>
-          <span>•</span>
           <span className="flex items-center gap-1">
-            <span className="w-2 h-2 bg-white/70 rounded-full"></span>
+            <span className="w-2 h-2 bg-[#a684ff] rounded-full"></span>
             {project.edgeCount || 0} edges
           </span>
-          <span>•</span>
           <span className="truncate">
             {formatDistanceToNow(new Date(project.updatedAt), { addSuffix: true })}
           </span>
