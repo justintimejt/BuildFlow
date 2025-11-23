@@ -146,7 +146,7 @@ export function DashboardPage() {
               Welcome {user?.displayName || 'User'},
             </h2>
             <p className="text-sm text-white/70 mt-1">
-              Manage your AI simulation projects and view insights
+              Create and manage your architecture diagrams
             </p>
           </div>
           <button

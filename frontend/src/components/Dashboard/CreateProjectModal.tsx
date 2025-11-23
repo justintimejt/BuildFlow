@@ -51,7 +51,7 @@ export function CreateProjectModal({
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <div className="bg-white/5 backdrop-blur-sm rounded-2xl shadow-2xl border border-white/10 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
           <div className="flex items-center justify-between p-6 border-b border-white/10">
-            <h2 className="text-2xl font-semibold text-white">Create New Project</h2>
+            <h2 className="text-2xl font-light tracking-tight text-white">Create New Project</h2>
             <button
               onClick={onClose}
               className="text-white/70 hover:text-white transition-colors"
@@ -189,14 +189,14 @@ export function CreateProjectModal({
           <div className="flex items-center justify-end gap-3 p-6 border-t border-white/10">
             <button
               onClick={onClose}
-              className="px-4 py-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-200"
+              className="px-4 py-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-200 font-light tracking-tight"
             >
               Cancel
             </button>
             <button
               onClick={handleCreate}
               disabled={creationMode === 'template' && !selectedTemplate}
-              className="px-6 py-2 bg-white text-black rounded-lg hover:bg-gray-200 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+              className="px-6 py-2 bg-white text-black rounded-lg hover:bg-gray-200 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed font-light tracking-tight shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
             >
               Create Project
             </button>
