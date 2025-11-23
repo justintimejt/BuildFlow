@@ -191,7 +191,6 @@ export function DashboardPage() {
           <ProjectGrid
             projects={projects}
             onOpen={openProject}
-            onDuplicate={handleDuplicate}
             onDelete={handleDelete}
             onRename={handleRename}
             onExport={downloadProject}

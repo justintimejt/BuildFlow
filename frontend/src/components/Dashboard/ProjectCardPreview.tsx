@@ -17,7 +17,7 @@ export function ProjectCardPreview({ thumbnail, project, className = '' }: Proje
   if (!thumbnail || imageError) {
     const placeholder = createPlaceholderThumbnail(project);
     return (
-      <div className={`w-full h-48 bg-black flex items-center justify-center ${className}`}>
+      <div className={`w-full h-48 bg-[#171717] flex items-center justify-center ${className}`}>
         {placeholder ? (
           <img
             src={placeholder}
@@ -35,9 +35,9 @@ export function ProjectCardPreview({ thumbnail, project, className = '' }: Proje
   }
 
   return (
-    <div className={`relative w-full h-48 bg-black overflow-hidden flex items-center justify-center ${className}`}>
+    <div className={`relative w-full h-48 bg-[#171717] overflow-hidden flex items-center justify-center ${className}`}>
       {isLoading && (
-        <div className="absolute inset-0 bg-black animate-pulse flex items-center justify-center">
+        <div className="absolute inset-0 bg-[#171717] animate-pulse flex items-center justify-center">
           <FaImage className="text-white/30 text-2xl" />
         </div>
       )}

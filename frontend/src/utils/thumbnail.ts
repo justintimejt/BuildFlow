@@ -27,7 +27,7 @@ export const generateThumbnailFromCanvas = async (
       height: elementHeight,
       scale: 1,
       useCORS: true,
-      backgroundColor: '#f3f4f6', // Match the canvas background
+      backgroundColor: '#171717', // Dark gray to match thumbnail background
       logging: false,
       allowTaint: false,
       // Capture the full viewport
@@ -72,8 +72,8 @@ export const createPlaceholderThumbnail = (project: Project): string => {
   
   if (!ctx) return '';
 
-  // Background - pure black
-  ctx.fillStyle = '#000000';
+  // Background - dark gray
+  ctx.fillStyle = '#171717';
   ctx.fillRect(0, 0, 400, 300);
 
   // Text - white

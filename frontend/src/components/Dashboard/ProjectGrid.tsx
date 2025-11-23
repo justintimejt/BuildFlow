@@ -4,7 +4,6 @@ import { ProjectCard } from './ProjectCard';
 interface ProjectGridProps {
   projects: StoredProject[];
   onOpen: (id: string) => void;
-  onDuplicate: (id: string) => void;
   onDelete: (id: string) => void;
   onRename: (id: string, newName: string) => void;
   onExport: (id: string) => void;
@@ -13,7 +12,6 @@ interface ProjectGridProps {
 export function ProjectGrid({
   projects,
   onOpen,
-  onDuplicate,
   onDelete,
   onRename,
   onExport
@@ -25,7 +23,6 @@ export function ProjectGrid({
           key={project.id}
           project={project}
           onOpen={onOpen}
-          onDuplicate={onDuplicate}
           onDelete={onDelete}
           onRename={onRename}
           onExport={onExport}
