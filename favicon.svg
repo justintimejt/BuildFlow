@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Top left square node -->
+  <rect x="160" y="128" width="64" height="64" fill="#000000" rx="4"/>
+  <!-- Top right square node -->
+  <rect x="288" y="128" width="64" height="64" fill="#000000" rx="4"/>
+  <!-- Bottom center square node -->
+  <rect x="224" y="320" width="64" height="64" fill="#000000" rx="4"/>
+  <!-- Horizontal line connecting top nodes -->
+  <line x1="224" y1="160" x2="288" y2="160" stroke="#000000" stroke-width="20" stroke-linecap="round"/>
+  <!-- Diagonal line from top-left to bottom -->
+  <line x1="192" y1="192" x2="240" y2="320" stroke="#000000" stroke-width="20" stroke-linecap="round"/>
+  <!-- Diagonal line from top-right to bottom -->
+  <line x1="320" y1="192" x2="272" y2="320" stroke="#000000" stroke-width="20" stroke-linecap="round"/>
+</svg>

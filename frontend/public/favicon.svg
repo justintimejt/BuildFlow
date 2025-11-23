@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512">
+  <!-- Background with rounded corners -->
+  <rect width="640" height="512" fill="#6366f1" rx="60"/>
+  <!-- FaProjectDiagram icon from Font Awesome - white color, scaled and centered -->
+  <g transform="translate(0, 0)">
+    <path d="M592 0H208c-26.5 0-48 21.5-48 48v64H48c-26.5 0-48 21.5-48 48v256c0 26.5 21.5 48 48 48h384c26.5 0 48-21.5 48-48v-64h144c26.5 0 48-21.5 48-48V48c0-26.5-21.5-48-48-48zM160 464H48c-8.8 0-16-7.2-16-16V160c0-8.8 7.2-16 16-16h112v320zm128-112H208c-8.8 0-16-7.2-16-16V48c0-8.8 7.2-16 16-16h80v320zm320 0H448V48c0-8.8 7.2-16 16-16h144c8.8 0 16 7.2 16 16v304c0 8.8-7.2 16-16 16z" fill="white"/>
+  </g>
+</svg>
