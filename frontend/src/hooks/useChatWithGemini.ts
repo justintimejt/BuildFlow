@@ -16,6 +16,7 @@ export function useChatWithGemini(projectId: string) {
   const previousProjectIdRef = useRef<string | null>(null);
   const hasLoadedRef = useRef(false);
   const messagesRef = useRef<ChatMessage[]>([]);
+  const isSwitchingProjectRef = useRef(false);
   
   // Keep messagesRef in sync with messages state
   useEffect(() => {
@@ -24,55 +25,63 @@ export function useChatWithGemini(projectId: string) {
 
   // Load chat history from Supabase when projectId is available
   useEffect(() => {
-    // Only clear messages if projectId actually changed to a different project
-    // Don't clear if going from null/dummy to a UUID (project was just created)
+    // Validate UUID format (reusable constant)
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    
+    // Determine if we're switching between projects (any change in projectId)
     const projectIdChanged = previousProjectIdRef.current !== null && 
-                             previousProjectIdRef.current !== projectId &&
-                             previousProjectIdRef.current !== 'dummy' &&
-                             projectId !== 'dummy';
+                             previousProjectIdRef.current !== projectId;
     
     if (projectIdChanged) {
-      // Only clear if switching to a completely different project
+      // Project ID changed - always clear messages to prevent cross-project contamination
       console.log(`🔄 Project ID changed from ${previousProjectIdRef.current} to ${projectId}, clearing messages`);
       setMessages([]);
       hasLoadedRef.current = false;
-    } else if (previousProjectIdRef.current !== projectId) {
-      // Project ID changed but it's not a "real" change (e.g., null -> UUID or dummy -> UUID)
-      // Don't clear messages, just update the ref
-      console.log(`ℹ️  Project ID updated from ${previousProjectIdRef.current} to ${projectId}, preserving ${messagesRef.current.length} messages`);
+      isSwitchingProjectRef.current = true; // Mark that we're switching projects
+    } else {
+      isSwitchingProjectRef.current = false; // Same project, not switching
     }
     
     previousProjectIdRef.current = projectId;
     setIsLoadingHistory(true);
 
     if (!projectId || projectId === 'dummy' || !isSupabaseAvailable() || !supabaseClient) {
+      // If switching projects and no valid projectId, ensure messages are cleared
+      if (isSwitchingProjectRef.current) {
+        setMessages([]);
+        isSwitchingProjectRef.current = false;
+      }
       setIsLoadingHistory(false);
       return;
     }
 
     // Validate that projectId is a UUID (Supabase projects use UUIDs)
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    // With auto-create, projectId should always be a valid UUID
     if (!uuidRegex.test(projectId)) {
       // Not a valid UUID, so this project doesn't have chat history yet
-      // But don't clear existing messages - they might be local messages that haven't been saved yet
+      // If we're switching projects, ensure messages are cleared
+      if (isSwitchingProjectRef.current) {
+        setMessages([]);
+        isSwitchingProjectRef.current = false;
+      }
       setIsLoadingHistory(false);
       return;
     }
 
-    // If we've already loaded for this projectId and it hasn't changed, don't reload
-    // BUT: if projectId changed (even if we think we loaded), we need to reload
-    // because messages might have been migrated to this new projectId
-    if (hasLoadedRef.current && !projectIdChanged && previousProjectIdRef.current === projectId) {
+    // If we've already loaded for this projectId and we're not switching, don't reload
+    if (hasLoadedRef.current && !isSwitchingProjectRef.current && previousProjectIdRef.current === projectId) {
       setIsLoadingHistory(false);
       return;
     }
     
-    // If projectId changed, reset hasLoaded so we reload
-    if (projectIdChanged) {
+    // If switching projects, reset hasLoaded so we reload
+    if (isSwitchingProjectRef.current) {
       hasLoadedRef.current = false;
     }
 
     let cancelled = false;
+    // Capture the switching state at the start of the load to avoid race conditions
+    const wasSwitchingProjects = isSwitchingProjectRef.current;
 
     async function loadChatHistory() {
       try {
@@ -80,7 +89,7 @@ export function useChatWithGemini(projectId: string) {
           throw new Error("Supabase client not initialized");
         }
         
-        console.log(`📥 Loading chat history for project: ${projectId}`);
+        console.log(`📥 Loading chat history for project: ${projectId}${wasSwitchingProjects ? ' (switching projects)' : ''}`);
         const { data, error } = await supabaseClient
           .from("chat_messages")
           .select("id, role, content, created_at")
@@ -91,6 +100,10 @@ export function useChatWithGemini(projectId: string) {
         if (error) {
           console.error("❌ Failed to load chat history:", error);
           if (!cancelled) {
+            // If switching and error, ensure messages are cleared
+            if (wasSwitchingProjects) {
+              setMessages([]);
+            }
             setIsLoadingHistory(false);
           }
           return;
@@ -105,46 +118,60 @@ export function useChatWithGemini(projectId: string) {
           }));
           console.log(`✅ Loaded ${loadedMessages.length} chat messages for project ${projectId}`);
           
-          // Merge with existing messages to preserve any local messages that haven't been saved yet
-          setMessages((prevMessages) => {
-            // CRITICAL: Always preserve existing messages if we have them
-            // This ensures local messages (sent before project existed in Supabase) are never lost
-            if (prevMessages.length > 0) {
-              if (loadedMessages.length > 0) {
-                // We have both local and loaded messages - merge them intelligently
-                // Create a map of loaded messages by content to avoid duplicates
-                const loadedMap = new Map<string, ChatMessage>();
-                loadedMessages.forEach(msg => {
-                  // Use content as key to identify duplicates
-                  loadedMap.set(`${msg.role}:${msg.content}`, msg);
-                });
-                
-                // Keep local messages that aren't in the loaded set
-                const localOnly = prevMessages.filter(localMsg => {
-                  const key = `${localMsg.role}:${localMsg.content}`;
-                  return !loadedMap.has(key);
-                });
-                
-                // Combine: loaded messages first (they have proper IDs), then local-only messages
-                const merged = [...loadedMessages, ...localOnly];
-                console.log(`🔀 Merged ${loadedMessages.length} Supabase messages with ${localOnly.length} local messages`);
-                return merged;
-              } else {
-                // No messages in Supabase, but we have local messages - KEEP THEM
-                console.log(`✅ No Supabase messages, preserving ${prevMessages.length} local messages`);
-                return prevMessages;
+          // If we're switching projects, always replace messages (don't merge)
+          // Otherwise, merge with existing messages to preserve any local messages that haven't been saved yet
+          if (wasSwitchingProjects) {
+            // Switching projects: replace all messages with loaded ones (or empty if none)
+            console.log(`🔄 Switching projects: replacing messages with ${loadedMessages.length} loaded messages`);
+            setMessages(loadedMessages);
+            isSwitchingProjectRef.current = false; // Reset flag after switching
+          } else {
+            // Not switching: merge to preserve local unsaved messages
+            setMessages((prevMessages) => {
+              // Only preserve existing messages if we're not switching projects
+              // This ensures local messages (sent before project existed in Supabase) are never lost
+              if (prevMessages.length > 0) {
+                if (loadedMessages.length > 0) {
+                  // We have both local and loaded messages - merge them intelligently
+                  // Create a map of loaded messages by content to avoid duplicates
+                  const loadedMap = new Map<string, ChatMessage>();
+                  loadedMessages.forEach(msg => {
+                    // Use content as key to identify duplicates
+                    loadedMap.set(`${msg.role}:${msg.content}`, msg);
+                  });
+                  
+                  // Keep local messages that aren't in the loaded set
+                  const localOnly = prevMessages.filter(localMsg => {
+                    const key = `${localMsg.role}:${localMsg.content}`;
+                    return !loadedMap.has(key);
+                  });
+                  
+                  // Combine: loaded messages first (they have proper IDs), then local-only messages
+                  const merged = [...loadedMessages, ...localOnly];
+                  console.log(`🔀 Merged ${loadedMessages.length} Supabase messages with ${localOnly.length} local messages`);
+                  return merged;
+                } else {
+                  // No messages in Supabase, but we have local messages - KEEP THEM
+                  console.log(`✅ No Supabase messages, preserving ${prevMessages.length} local messages`);
+                  return prevMessages;
+                }
               }
-            }
-            
-            // No existing messages, use loaded messages (or empty array)
-            return loadedMessages;
-          });
+              
+              // No existing messages, use loaded messages (or empty array)
+              return loadedMessages;
+            });
+          }
           
           hasLoadedRef.current = true;
           setIsLoadingHistory(false);
         } else if (!cancelled) {
           console.log(`ℹ️  No chat history found for project ${projectId}`);
-          // Don't clear existing messages - they might be local messages that haven't been saved yet
+          // If switching projects and no history found, ensure messages are cleared
+          if (wasSwitchingProjects) {
+            console.log(`🔄 Switching projects: no history found, clearing messages`);
+            setMessages([]);
+            isSwitchingProjectRef.current = false; // Reset flag
+          }
           // Only set hasLoaded if we actually tried to load (not if we skipped due to invalid projectId)
           hasLoadedRef.current = true;
           setIsLoadingHistory(false);
@@ -171,18 +198,24 @@ export function useChatWithGemini(projectId: string) {
       const errorMessage: ChatMessage = {
         id: crypto.randomUUID(),
         role: "assistant",
-        content: "Error: Project ID is invalid. Please ensure Supabase is configured and the project is saved.",
+        content: "Error: Project ID is invalid. The project is being initialized, please try again in a moment.",
       };
       setMessages((prev) => [...prev, errorMessage]);
       return;
     }
 
-    // Validate UUID format, but log a warning instead of blocking (backend will validate)
+    // Validate UUID format - backend requires a valid UUID
+    // With auto-create, projectId should be a valid UUID, but we check just in case
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(projectId)) {
-      console.warn("⚠️  Warning: projectId is not a valid UUID format:", projectId);
-      console.warn("⚠️  Chat may not work correctly. Backend will validate and return an error if invalid.");
-      // Still try to send - let the backend handle validation
+      console.error("❌ Cannot send message: projectId is not a valid UUID format:", projectId);
+      const errorMessage: ChatMessage = {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        content: "Error: Project is still being initialized. Please wait a moment and try again.",
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+      return;
     }
 
     setIsLoading(true);

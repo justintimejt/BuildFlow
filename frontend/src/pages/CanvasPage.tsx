@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { ProjectProvider, useProjectContext } from '../contexts/ProjectContext';
 import { ReactFlowProvider } from '../contexts/ReactFlowContext';
@@ -10,8 +10,9 @@ import { ChatBar } from '../components/Chat';
 import { useProjectId } from '../hooks/useProjectId';
 import { useSupabaseDiagramSync } from '../hooks/useSupabaseDiagramSync';
 import { useLoadProjectFromSupabase } from '../hooks/useLoadProjectFromSupabase';
-import { isSupabaseAvailable } from '../lib/supabaseClient';
-import { loadProjectFromStorage, getStoredProjects } from '../utils/storage';
+import { isSupabaseAvailable, supabaseClient } from '../lib/supabaseClient';
+import { loadProjectFromStorage, getStoredProjects, updateStoredProjectSupabaseId } from '../utils/storage';
+import { getOrCreateSessionId } from '../lib/session';
 import { useTemplates } from '../hooks/useTemplates';
 import { saveProjectToStorage } from '../utils/storage';
 import { DotScreenShader } from '@/components/ui/dot-shader-background';
@@ -20,10 +21,11 @@ function CanvasContent() {
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { selectedNodeId, setSelectedNodeId, loadProject } = useProjectContext();
+  const { selectedNodeId, setSelectedNodeId, loadProject, getProject } = useProjectContext();
   const { projectId, loading: projectIdLoading } = useProjectId('Untitled Project');
   const [leftSidebarCollapsed, setLeftSidebarCollapsed] = useState(false);
   const { createProjectFromTemplate } = useTemplates();
+  const isAutoCreatingRef = useRef(false);
 
   // Handle template parameter
   useEffect(() => {
@@ -99,6 +101,67 @@ function CanvasContent() {
       setIsLoadingFromStorage(true);
     }
   }, [id, loadProject, navigate, hasLoaded]);
+
+  // Auto-create Supabase project if it doesn't exist (Option 1 from ALTERNATIVE_SOLUTIONS.md)
+  useEffect(() => {
+    if (id && id !== 'new' && hasLoaded && !supabaseProjectId && isSupabaseAvailable() && !isAutoCreatingRef.current) {
+      const autoCreateSupabaseProject = async () => {
+        isAutoCreatingRef.current = true;
+        try {
+          const project = getProject();
+          const projects = getStoredProjects();
+          const storedProject = projects.find(p => p.id === id);
+          const projectName = storedProject?.name || project.name || 'Untitled Project';
+          
+          if (!supabaseClient) {
+            console.warn('Supabase client not available for auto-create');
+            return;
+          }
+          
+          const sessionId = getOrCreateSessionId();
+          
+          const projectWithName = {
+            ...project,
+            name: projectName,
+          };
+          
+          const { data: created, error } = await supabaseClient
+            .from("projects")
+            .insert({
+              session_id: sessionId,
+              name: projectName,
+              diagram_json: projectWithName,
+            })
+            .select("id")
+            .single();
+          
+          if (!error && created?.id) {
+            // Update localStorage with Supabase ID
+            updateStoredProjectSupabaseId(id, created.id);
+            setSupabaseProjectId(created.id);
+            console.log(`✅ Auto-created Supabase project: ${created.id}`);
+            
+            // Dispatch event to notify other components
+            window.dispatchEvent(new CustomEvent('projectSupabaseIdUpdated', {
+              detail: {
+                localStorageId: id,
+                supabaseId: created.id,
+                oldProjectId: null
+              }
+            }));
+          } else if (error) {
+            console.error('Failed to auto-create Supabase project:', error);
+          }
+        } catch (error) {
+          console.error('Error auto-creating Supabase project:', error);
+        } finally {
+          isAutoCreatingRef.current = false;
+        }
+      };
+      
+      autoCreateSupabaseProject();
+    }
+  }, [id, hasLoaded, supabaseProjectId, getProject]);
 
   // Watch for updates to the Supabase ID (e.g., when project is saved for the first time)
   useEffect(() => {
@@ -220,9 +283,10 @@ function CanvasContent() {
         <ChatBar 
           projectId={
             // Always prefer supabaseProjectId if available (this is the correct Supabase UUID)
+            // With auto-create, supabaseProjectId should be available shortly after project load
             supabaseProjectId || 
             // Fallback to projectId from useProjectId (session-based, but valid for chat)
-            // This ensures chat works even if project hasn't been saved to Supabase yet
+            // This ensures chat works even if auto-create is still in progress
             projectId ||
             // Last resort: use id if it's a valid UUID format
             (id && id !== 'new' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id) ? id : null)
