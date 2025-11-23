@@ -1,6 +1,7 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { StoredProject, getStoredProjects } from '../utils/storage';
-import { Template, getLocalTemplates } from '../utils/templates';
+import { getLocalTemplates } from '../utils/templates';
+import { Template } from '../types/template';
 
 export type ViewMode = 'grid' | 'list';
 export type SortBy = 'name' | 'created' | 'modified';

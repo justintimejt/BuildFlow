@@ -7,7 +7,7 @@ type LoginCardProps = {
 };
 
 export function LoginCard({
-  redirectPathAfterLogin = '/dashboard',
+  redirectPathAfterLogin: _redirectPathAfterLogin = '/dashboard',
 }: LoginCardProps) {
   const [isLoadingGoogle, setIsLoadingGoogle] = useState(false);
   const [isLoadingGitHub, setIsLoadingGitHub] = useState(false);

@@ -7,7 +7,6 @@ import {
   exportProjectToJSON,
   loadProjectFromStorage
 } from '../utils/storage';
-import { Project } from '../types';
 import { supabaseClient, isSupabaseAvailable } from '../lib/supabaseClient';
 
 export const useProjectActions = () => {
@@ -48,7 +47,7 @@ export const useProjectActions = () => {
             .from("chat_messages")
             .delete()
             .eq("project_id", result.supabaseId)
-            .select('*', { count: 'exact', head: false });
+            .select();
           
           if (chatError) {
             console.error("❌ Failed to delete chat messages from Supabase:", chatError);
