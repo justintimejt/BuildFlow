@@ -1,6 +1,6 @@
 # Area Highlight & Group Move Tool – Cursor-ready Prompt
 
-You are an AI pair programmer working in the **BuildFlow / ArchCoach** repo.
+You are an AI pair programmer working in the **BuildFlow / Luna** repo.
 
 Your task: **Add a toolbar tool that lets the user highlight a rectangular area on the canvas and move all the nodes inside that area together.**
 
