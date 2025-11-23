@@ -2,7 +2,7 @@
 
 ## Objective
 
-Integrate a chat bar component at the bottom of the Visual System Design Editor screen. The chat bar will allow users to prompt ArchCoach (AI assistant) to modify their diagrams using natural language. The chat connects to the FastAPI backend which uses Supabase for context and Gemini API for generating diagram edit operations.
+Integrate a chat bar component at the bottom of the Visual System Design Editor screen. The chat bar will allow users to prompt Luna (AI assistant) to modify their diagrams using natural language. The chat connects to the FastAPI backend which uses Supabase for context and Gemini API for generating diagram edit operations.
 
 ## Current State
 
@@ -59,11 +59,11 @@ Create `frontend/src/components/Chat/ChatBar.tsx`:
 **Layout:**
 ```
 ┌─────────────────────────────────────────────┐
-│  [Minimize/Maximize Button]  ArchCoach     │
+│  [Minimize/Maximize Button]  Luna     │
 ├─────────────────────────────────────────────┤
 │  [Chat Messages Area - Scrollable]          │
 │  ┌──────────────┐  ┌──────────────┐        │
-│  │ You: "Add..." │  │ ArchCoach:...│        │
+│  │ You: "Add..." │  │ Luna:...│        │
 │  └──────────────┘  └──────────────┘        │
 ├─────────────────────────────────────────────┤
 │  [Input Field] [Send Button]                │

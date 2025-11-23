@@ -76,9 +76,7 @@ export function InspectorPanel({ selectedNodeId }: InspectorPanelProps) {
   };
 
   const handleDelete = () => {
-    if (window.confirm('Are you sure you want to delete this node?')) {
-      deleteNode(selectedNodeId!);
-    }
+    deleteNode(selectedNodeId!);
   };
 
   const Icon = nodeType.icon;

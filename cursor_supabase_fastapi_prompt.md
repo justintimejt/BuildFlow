@@ -17,7 +17,7 @@ The goal is to evolve this into a **frontend + backend** setup with:
      - Reads **recent chat context** from Supabase.
      - Calls **Gemini** with both, and returns **diagram edit operations** as JSON.
 
-The result should feel like **ArchCoach**:
+The result should feel like **Luna**:
 - User edits the diagram in the canvas.
 - User opens chat, asks for changes.
 - Backend uses **the latest diagram + recent conversation** to produce **operations** that the frontend applies to the diagram.
@@ -311,7 +311,7 @@ async def chat(req: ChatRequest):
 
     # 3) Build system prompt for Gemini
     system_instruction = f"""
-You are ArchCoach, an AI that helps edit a system design diagram.
+You are Luna, an AI that helps edit a system design diagram.
 The diagram is represented as a JSON "project" with nodes and edges.
 
 Current diagram JSON:

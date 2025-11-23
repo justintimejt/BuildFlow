@@ -1,7 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
 import { useChatWithGemini } from '../../hooks/useChatWithGemini';
 import { isSupabaseAvailable } from '../../lib/supabaseClient';
-import { FaChevronUp, FaChevronDown, FaPaperPlane, FaComment } from 'react-icons/fa';
+import { FaChevronUp, FaChevronDown, FaPaperPlane } from 'react-icons/fa';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { cn } from '@/lib/utils';
 
 interface ChatBarProps {
   projectId: string | null;
@@ -12,19 +16,14 @@ export function ChatBar({ projectId, leftSidebarCollapsed = false }: ChatBarProp
   const [isExpanded, setIsExpanded] = useState(false);
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1920);
 
   // Calculate left margin based on sidebar state
-  // Left sidebar: 256px (w-64) when expanded, 0 when collapsed
   const leftSidebarWidth = leftSidebarCollapsed ? 0 : 256;
-  
-  // ReactFlow controls positioning
-  // MiniMap: ~200px wide, positioned bottom-right
-  // Zoom Controls: ~50px wide, positioned above minimap
-  // Total space needed on right: ~260px
   const rightControlsWidth = 260;
 
-  // Handle window resize to keep chat bar centered
+  // Handle window resize
   useEffect(() => {
     const handleResize = () => {
       setWindowWidth(window.innerWidth);
@@ -34,8 +33,15 @@ export function ChatBar({ projectId, leftSidebarCollapsed = false }: ChatBarProp
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Auto-resize textarea
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`;
+    }
+  }, [input]);
+
   // Only initialize chat if projectId is available
-  // Use dummy projectId to prevent hook errors, but disable functionality
   const { messages, isLoading, sendMessage } = useChatWithGemini(projectId || 'dummy');
 
   const scrollToBottom = () => {
@@ -54,13 +60,16 @@ export function ChatBar({ projectId, leftSidebarCollapsed = false }: ChatBarProp
     const message = input.trim();
     setInput('');
     sendMessage(message);
-    // Auto-expand when sending a message
     if (!isExpanded) {
       setIsExpanded(true);
     }
+    // Reset textarea height
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+    }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSubmit(e as any);
@@ -69,22 +78,16 @@ export function ChatBar({ projectId, leftSidebarCollapsed = false }: ChatBarProp
     }
   };
 
-  // Show chat bar always, but disable if Supabase is not configured
-  // If Supabase is configured, allow chat even if projectId is null (it will be created by useProjectId)
   const isSupabaseConfigured = isSupabaseAvailable();
   const isDisabled = !isSupabaseConfigured;
 
-  // Calculate chat bar width and position, shifted to the right
+  // Calculate chat bar width and position
   const availableWidth = windowWidth;
-  const minSpacing = 20; // Minimum spacing on each side
-  const minChatBarWidth = 400; // Minimum chat bar width
-  const rightShift = 100; // Shift chat bar to the right by this amount
+  const minSpacing = 20;
+  const minChatBarWidth = 400;
+  const rightShift = 100;
   
-  // Calculate total available space (excluding sidebars and controls)
   const totalAvailableSpace = availableWidth - leftSidebarWidth - rightControlsWidth;
-  
-  // Position chat bar shifted to the right
-  // Increase left spacing to shift it right, maintain minimum right spacing
   const leftSpacing = minSpacing + rightShift;
   const rightSpacing = minSpacing;
   const chatBarWidth = Math.max(minChatBarWidth, totalAvailableSpace - leftSpacing - rightSpacing);
@@ -92,90 +95,119 @@ export function ChatBar({ projectId, leftSidebarCollapsed = false }: ChatBarProp
   
   return (
     <div
-      className={`
-        fixed bottom-0 z-40
-        bg-white border-t border-gray-300 shadow-lg
-        transition-all duration-300 ease-in-out
-        ${isExpanded ? 'h-[300px]' : 'h-[60px]'}
-      `}
+      className={cn(
+        "fixed bottom-0 z-40 bg-background border-t border-border shadow-lg backdrop-blur-sm",
+        "transition-all duration-300 ease-in-out",
+        isExpanded ? 'h-[400px]' : 'h-[60px]'
+      )}
       style={{
         left: `${chatBarLeft}px`,
         width: `${chatBarWidth}px`,
+        backgroundColor: 'hsl(var(--background))',
       }}
     >
       {/* Header Bar */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200 bg-gray-50">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted" style={{ backgroundColor: 'hsl(var(--muted))' }}>
         <div className="flex items-center gap-2">
-          <FaComment className="text-blue-600" />
-          <span className="text-sm font-semibold text-gray-800">BOB Assistant</span>
+          <div className="relative">
+            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+            <div className="absolute inset-0 w-2 h-2 bg-green-500 rounded-full animate-ping opacity-75"></div>
+          </div>
+          <span className="text-sm font-semibold text-foreground">Luna</span>
+          <div className="w-px h-4 bg-border"></div>
+          <span className="text-sm font-normal text-muted-foreground">gemini-2.5-flash</span>
         </div>
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={() => setIsExpanded(!isExpanded)}
-          className="p-1 hover:bg-gray-200 rounded transition-colors"
+          className="h-8 w-8"
           aria-label={isExpanded ? 'Minimize chat' : 'Expand chat'}
         >
           {isExpanded ? (
-            <FaChevronDown className="text-gray-600" />
+            <FaChevronDown className="h-4 w-4" />
           ) : (
-            <FaChevronUp className="text-gray-600" />
+            <FaChevronUp className="h-4 w-4" />
           )}
-        </button>
+        </Button>
       </div>
 
-      {/* Messages Area (only visible when expanded) */}
+      {/* Messages Area */}
       {isExpanded && (
-        <div className="flex-1 overflow-y-auto p-4 space-y-3 h-[200px] bg-white">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 h-[280px] bg-background" style={{ backgroundColor: 'hsl(var(--background))' }}>
           {isDisabled ? (
-            <div className="text-center text-gray-500 mt-8">
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 max-w-md mx-auto">
-                <p className="text-sm font-medium text-yellow-800 mb-2">⚠️ Supabase Configuration Required</p>
-                <p className="text-xs text-yellow-700">
-                  The chat feature requires Supabase to be configured. Please set up your Supabase credentials in <code className="bg-yellow-100 px-1 rounded">frontend/.env</code>.
-                </p>
-                <p className="text-xs text-yellow-600 mt-2">
-                  See <code className="bg-yellow-100 px-1 rounded">SETUP_GUIDE.md</code> for instructions.
+            <div className="text-center text-muted-foreground mt-8">
+              <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 max-w-md mx-auto">
+                <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200 mb-2">⚠️ Supabase Configuration Required</p>
+                <p className="text-xs text-yellow-700 dark:text-yellow-300">
+                  The chat feature requires Supabase to be configured. Please set up your Supabase credentials in <code className="bg-yellow-100 dark:bg-yellow-900/40 px-1 rounded">frontend/.env</code>.
                 </p>
               </div>
             </div>
           ) : (
             <>
               {messages.length === 0 && (
-                <div className="text-center text-gray-500 mt-8">
-                  <p className="text-sm">Start chatting with BOB Assistant to modify your diagram.</p>
-                  <p className="text-xs mt-2 text-gray-400">Example: "Add a database node"</p>
+                <div className="text-center text-muted-foreground mt-8">
+                  <p className="text-sm">Start chatting with Luna to modify your diagram.</p>
+                  <p className="text-xs mt-2 text-muted-foreground/70">Example: "Add a database node"</p>
                 </div>
               )}
 
               {messages.map((message) => (
                 <div
                   key={message.id}
-                  className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                  className={cn(
+                    "flex gap-3",
+                    message.role === 'user' ? 'justify-end' : 'justify-start'
+                  )}
                 >
+                  {message.role === 'assistant' && (
+                    <Avatar className="h-8 w-8 shrink-0">
+                      <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+                        AI
+                      </AvatarFallback>
+                    </Avatar>
+                  )}
                   <div
-                    className={`max-w-[75%] rounded-lg px-3 py-2 ${
+                    className={cn(
+                      "max-w-[75%] rounded-lg px-4 py-2.5",
                       message.role === 'user'
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-100 text-gray-800'
-                    }`}
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted text-foreground'
+                    )}
                   >
-                    <div className="text-xs font-medium mb-1 opacity-75">
-                      {message.role === 'user' ? 'You' : 'BOB Assistant'}
+                    <div className="text-xs font-medium mb-1.5 opacity-70">
+                      {message.role === 'user' ? 'You' : 'Luna'}
                     </div>
-                    <div className="text-sm break-words whitespace-pre-wrap">
+                    <div className="text-sm break-words whitespace-pre-wrap leading-relaxed">
                       {message.content}
                     </div>
                   </div>
+                  {message.role === 'user' && (
+                    <Avatar className="h-8 w-8 shrink-0">
+                      <AvatarFallback className="bg-secondary text-secondary-foreground text-xs">
+                        U
+                      </AvatarFallback>
+                    </Avatar>
+                  )}
                 </div>
               ))}
 
               {isLoading && (
-                <div className="flex justify-start">
-                  <div className="bg-gray-100 rounded-lg px-3 py-2">
+                <div className="flex justify-start gap-3">
+                  <Avatar className="h-8 w-8 shrink-0">
+                    <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+                      AI
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="bg-muted rounded-lg px-4 py-2.5">
                     <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
-                      <span className="text-xs text-gray-600 ml-2">Thinking...</span>
+                      <div className="flex gap-1">
+                        <div className="w-2 h-2 bg-muted-foreground/40 rounded-full animate-bounce" />
+                        <div className="w-2 h-2 bg-muted-foreground/40 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
+                        <div className="w-2 h-2 bg-muted-foreground/40 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                      </div>
+                      <span className="text-xs text-muted-foreground">Thinking...</span>
                     </div>
                   </div>
                 </div>
@@ -190,13 +222,15 @@ export function ChatBar({ projectId, leftSidebarCollapsed = false }: ChatBarProp
       {/* Input Area */}
       <form
         onSubmit={handleSubmit}
-        className={`px-4 py-2 border-t border-gray-200 bg-white ${
-          isExpanded ? '' : 'flex items-center gap-2'
-        }`}
+        className={cn(
+          "px-4 py-3 border-t border-border bg-background",
+          !isExpanded && 'flex items-center gap-2'
+        )}
+        style={{ backgroundColor: 'hsl(var(--background))' }}
       >
-        <div className="flex gap-2 items-center">
-          <input
-            type="text"
+        <div className="flex gap-2 items-end">
+          <Textarea
+            ref={textareaRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -204,41 +238,27 @@ export function ChatBar({ projectId, leftSidebarCollapsed = false }: ChatBarProp
               isDisabled
                 ? "Configure Supabase to enable chat..."
                 : isExpanded
-                ? "Ask BOB Assistant to modify your diagram..."
+                ? "Ask Luna to modify your diagram... (Shift+Enter for new line)"
                 : "Type a message..."
             }
             disabled={isLoading || isDisabled}
-            className={`
-              flex-1 px-3 py-2 border border-gray-300 rounded-md
-              focus:outline-none focus:ring-2 focus:ring-blue-500
-              disabled:opacity-50 disabled:cursor-not-allowed
-              text-sm
-              ${!isExpanded ? 'flex-1' : 'w-full'}
-            `}
+            className={cn(
+              "resize-none min-h-[40px] max-h-[120px]",
+              !isExpanded && 'min-h-[40px]'
+            )}
+            rows={1}
           />
-          <button
+          <Button
             type="submit"
             disabled={isLoading || !input.trim() || isDisabled}
-            className={`
-              px-4 py-2 bg-blue-600 text-white rounded-md
-              hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed
-              transition-colors flex items-center gap-2
-              ${!isExpanded ? 'flex-shrink-0' : ''}
-            `}
+            size="icon"
+            className="h-10 w-10 shrink-0"
             aria-label="Send message"
           >
-            {isExpanded ? (
-              <>
-                <span className="text-sm">Send</span>
-                <FaPaperPlane className="text-xs" />
-              </>
-            ) : (
-              <FaPaperPlane />
-            )}
-          </button>
+            <FaPaperPlane className="h-4 w-4" />
+          </Button>
         </div>
       </form>
     </div>
   );
 }
-

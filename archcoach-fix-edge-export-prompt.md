@@ -1,6 +1,6 @@
 # Fix Missing Node Connection Lines in PNG Export – Cursor-ready Prompt
 
-You are an AI pair programmer working in the **BuildFlow / ArchCoach** repo.
+You are an AI pair programmer working in the **BuildFlow / Luna** repo.
 
 **Bug:** When exporting the system design canvas as a PNG, **node connection lines (edges) do not appear** in the exported image. They *do* appear correctly while editing in the UI.
 
