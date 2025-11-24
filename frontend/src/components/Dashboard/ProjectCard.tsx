@@ -7,7 +7,7 @@ import { ProjectCardPreview } from './ProjectCardPreview';
 interface ProjectCardProps {
   project: StoredProject;
   onOpen: (id: string) => void;
-  onDelete: (id: string) => void;
+  onDelete: (id: string) => Promise<void>;
   onRename: (id: string, newName: string) => void;
   onExport: (id: string) => void;
 }
@@ -33,11 +33,21 @@ export function ProjectCard({
     setShowMenu(false);
   };
 
-  const handleDelete = () => {
-    if (window.confirm(`Are you sure you want to delete "${project.name}"? This action cannot be undone.`)) {
-      onDelete(project.id);
-    }
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    
+    const confirmed = window.confirm(`Are you sure you want to delete "${project.name}"? This action cannot be undone.`);
     setShowMenu(false);
+    
+    if (confirmed) {
+      try {
+        await onDelete(project.id);
+      } catch (error) {
+        console.error('Error deleting project:', error);
+        alert('Failed to delete project. Please try again.');
+      }
+    }
   };
 
   // Close menu when clicking outside
@@ -155,10 +165,7 @@ export function ProjectCard({
                 </button>
                 <div className="border-t border-white/10" />
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDelete();
-                  }}
+                  onClick={handleDelete}
                   className="w-full text-left px-3 py-1.5 text-xs text-red-400 hover:bg-red-400/10 flex items-center gap-1.5 transition-colors rounded-b-lg"
                 >
                   <FaTrash className="text-[10px]" />

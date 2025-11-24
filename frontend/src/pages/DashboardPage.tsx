@@ -5,8 +5,10 @@ import { useDashboard } from '../hooks/useDashboard';
 import { useProjectActions } from '../hooks/useProjectActions';
 import { useTemplates } from '../hooks/useTemplates';
 import { useAuth } from '../hooks/useAuth';
-import { saveProjectToStorage } from '../utils/storage';
+import { saveProjectToStorage, updateStoredProjectSupabaseId } from '../utils/storage';
 import { Project } from '../types';
+import { createProjectInSupabase } from '../lib/projects';
+import { isSupabaseAvailable } from '../lib/supabaseClient';
 import { EmptyState, ProjectGrid, ProjectList, CreateProjectModal } from '../components/Dashboard';
 import { Input } from '@/components/ui/input';
 import { DotScreenShader } from '@/components/ui/dot-shader-background';
@@ -50,7 +52,7 @@ export function DashboardPage() {
     }
   };
 
-  const handleCreateFromScratch = (name: string) => {
+  const handleCreateFromScratch = async (name: string) => {
     const newProject: Project = {
       version: '1.0.0',
       name,
@@ -60,22 +62,82 @@ export function DashboardPage() {
       updatedAt: new Date().toISOString()
     };
     
+    // Save to localStorage first
     const projectId = saveProjectToStorage(newProject, name);
+    
+    // Immediately create in Supabase (autosave)
+    if (isSupabaseAvailable()) {
+      try {
+        const supabaseProject = await createProjectInSupabase({
+          name,
+          initialData: newProject,
+        });
+        
+        // Store the Supabase ID in localStorage project
+        updateStoredProjectSupabaseId(projectId, supabaseProject.id);
+        
+        // Use Supabase ID for navigation so it's available immediately
+        navigate(`/project/${supabaseProject.id}`);
+        return;
+      } catch (error) {
+        console.error('Failed to create project in Supabase, using localStorage ID:', error);
+        // Continue with localStorage ID if Supabase fails
+      }
+    }
+    
     navigate(`/project/${projectId}`);
   };
 
-  const handleCreateFromTemplate = (template: any, name: string) => {
+  const handleCreateFromTemplate = async (template: any, name: string) => {
     const newProject = createProjectFromTemplate(template.id, name);
     if (!newProject) return;
     
+    // Save to localStorage first
     const projectId = saveProjectToStorage(newProject, name);
+    
+    // Immediately create in Supabase (autosave)
+    if (isSupabaseAvailable()) {
+      try {
+        const supabaseProject = await createProjectInSupabase({
+          name,
+          initialData: newProject,
+        });
+        
+        // Store the Supabase ID in localStorage project
+        updateStoredProjectSupabaseId(projectId, supabaseProject.id);
+        
+        // Use Supabase ID for navigation so it's available immediately
+        navigate(`/project/${supabaseProject.id}`);
+        return;
+      } catch (error) {
+        console.error('Failed to create project in Supabase, using localStorage ID:', error);
+        // Continue with localStorage ID if Supabase fails
+      }
+    }
+    
     navigate(`/project/${projectId}`);
   };
 
-  const handleDelete = async (id: string) => {
-    const success = await deleteProject(id);
-    if (success) {
-      refreshProjects();
+  const handleDelete = async (id: string): Promise<void> => {
+    try {
+      console.log(`🗑️  Starting delete operation for project: ${id}`);
+      const success = await deleteProject(id);
+      if (success) {
+        console.log(`✅ Delete operation completed, refreshing projects...`);
+        // Add a delay to ensure both localStorage and Supabase are updated before refreshing
+        // Also give Supabase time to propagate the deletion
+        await new Promise(resolve => setTimeout(resolve, 500));
+        await refreshProjects();
+        console.log(`✅ Projects refreshed after deletion`);
+      } else {
+        console.error('Failed to delete project:', id);
+        alert('Failed to delete project. Please try again.');
+        throw new Error('Delete operation failed');
+      }
+    } catch (error) {
+      console.error('Error in handleDelete:', error);
+      alert('An error occurred while deleting the project. Please try again.');
+      throw error;
     }
   };
 

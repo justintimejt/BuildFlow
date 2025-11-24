@@ -5,7 +5,8 @@ import {
   duplicateProject,
   updateProjectName,
   exportProjectToJSON,
-  loadProjectFromStorage
+  loadProjectFromStorage,
+  getStoredProjects
 } from '../utils/storage';
 import { supabaseClient, isSupabaseAvailable } from '../lib/supabaseClient';
 
@@ -17,96 +18,91 @@ export const useProjectActions = () => {
   }, [navigate]);
 
   const deleteProject = useCallback(async (id: string): Promise<boolean> => {
-    const result = deleteProjectFromStorage(id);
+    // First, try to get the project from localStorage to find its supabaseId
+    const projects = getStoredProjects();
     
-    if (!result.success) {
-      return false;
+    // Check if id looks like a UUID (Supabase IDs are UUIDs)
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+    
+    // Find project by ID or by supabaseId (in case we're deleting by Supabase UUID)
+    let projectToDelete = projects.find(p => p.id === id);
+    if (!projectToDelete && isUUID) {
+      // If not found by ID and it's a UUID, check if any localStorage project has this as supabaseId
+      projectToDelete = projects.find(p => p.supabaseId === id);
     }
     
-    // If project has a Supabase ID, delete it from Supabase as well
-    if (result.supabaseId && isSupabaseAvailable() && supabaseClient) {
+    // Determine the Supabase ID to delete
+    // Priority: 1) supabaseId from localStorage project, 2) the id itself (if it's a UUID)
+    const supabaseId = projectToDelete?.supabaseId || (isUUID ? id : null);
+    
+    // Determine the localStorage ID to delete (could be different from the passed ID)
+    const localStorageId = projectToDelete?.id || (isUUID ? null : id);
+    
+    // Delete from localStorage if project exists there
+    let localStorageDeleted = false;
+    if (localStorageId && projectToDelete) {
+      const result = deleteProjectFromStorage(localStorageId);
+      localStorageDeleted = result.success;
+      if (!result.success) {
+        console.error(`Failed to delete project ${localStorageId} from localStorage`);
+        // Continue anyway to try Supabase deletion
+      } else {
+        console.log(`✅ Successfully deleted project ${localStorageId} from localStorage`);
+      }
+    } else if (!isUUID) {
+      // If it's not a UUID and not found, try deleting by the ID anyway
+      const result = deleteProjectFromStorage(id);
+      localStorageDeleted = result.success;
+      if (!result.success) {
+        console.log(`ℹ️  Project ${id} not found in localStorage`);
+      }
+    } else {
+      console.log(`ℹ️  Project ${id} not found in localStorage, may be Supabase-only`);
+      localStorageDeleted = true; // Consider it "deleted" since it wasn't there
+    }
+    
+    // Delete from Supabase if we have a Supabase ID
+    let supabaseDeleted = false;
+    if (supabaseId && isSupabaseAvailable() && supabaseClient) {
       try {
-        console.log(`🗑️  Deleting project ${result.supabaseId} from Supabase (chat messages will be cascade deleted)`);
+        console.log(`🗑️  Deleting project ${supabaseId} from Supabase (chat messages will be cascade deleted)`);
         
         // Delete the project itself - this will automatically cascade delete all chat messages
         // due to the foreign key constraint: "project_id uuid not null references projects(id) on delete cascade"
         const { error, data } = await supabaseClient
           .from("projects")
           .delete()
-          .eq("id", result.supabaseId)
+          .eq("id", supabaseId)
           .select(); // Select to verify what was deleted
         
         if (error) {
           console.error("❌ Failed to delete project from Supabase:", error);
           console.error("Error details:", JSON.stringify(error, null, 2));
-          
-          // Try to delete chat messages explicitly as a fallback
-          // (in case cascade isn't working due to RLS or other issues)
-          console.log("🔄 Attempting to delete chat messages explicitly as fallback...");
-          const { error: chatError, count: chatCount } = await supabaseClient
-            .from("chat_messages")
-            .delete()
-            .eq("project_id", result.supabaseId)
-            .select();
-          
-          if (chatError) {
-            console.error("❌ Failed to delete chat messages from Supabase:", chatError);
-          } else {
-            console.log(`✅ Deleted ${chatCount || 0} chat messages as fallback`);
-          }
-          
-          // Still return true since localStorage deletion succeeded
-          return true;
-        }
-        
-        // Verify deletion succeeded
-        if (data && data.length > 0) {
-          console.log(`✅ Successfully deleted project ${result.supabaseId} from Supabase`);
-          
-          // Verify that chat messages were also deleted (cascade should have handled this)
-          const { data: remainingMessages, error: verifyError } = await supabaseClient
-            .from("chat_messages")
-            .select("id")
-            .eq("project_id", result.supabaseId)
-            .limit(1);
-          
-          if (verifyError) {
-            console.log(`ℹ️  Could not verify chat message deletion: ${verifyError.message}`);
-          } else if (remainingMessages && remainingMessages.length > 0) {
-            console.warn(`⚠️  Warning: ${remainingMessages.length} chat message(s) still exist after project deletion`);
-            console.warn(`⚠️  This suggests cascade delete may not be working. Attempting explicit deletion...`);
-            
-            // Try explicit deletion as fallback
-            const { error: explicitDeleteError } = await supabaseClient
-              .from("chat_messages")
-              .delete()
-              .eq("project_id", result.supabaseId);
-            
-            if (explicitDeleteError) {
-              console.error(`❌ Failed to explicitly delete remaining chat messages:`, explicitDeleteError);
-            } else {
-              console.log(`✅ Explicitly deleted remaining chat messages`);
-            }
-          } else {
-            console.log(`✅ Verified: All chat messages were automatically deleted via cascade`);
-          }
+          supabaseDeleted = false;
+        } else if (data && data.length > 0) {
+          console.log(`✅ Successfully deleted project ${supabaseId} from Supabase`);
+          supabaseDeleted = true;
         } else {
-          console.log(`⚠️  Project deletion returned no data - project may not have existed in Supabase`);
+          console.log(`⚠️  Project deletion returned no data - project may not have existed in Supabase or was already deleted`);
+          supabaseDeleted = true; // Consider it deleted if it wasn't there
         }
       } catch (error) {
         console.error("❌ Error deleting project from Supabase:", error);
         console.error("Error stack:", error instanceof Error ? error.stack : 'No stack trace');
-        // Still return true since localStorage deletion succeeded
+        supabaseDeleted = false;
       }
     } else {
-      if (!result.supabaseId) {
+      if (!supabaseId) {
         console.log(`ℹ️  Project ${id} has no Supabase ID, skipping Supabase deletion`);
       } else if (!isSupabaseAvailable()) {
         console.log(`ℹ️  Supabase not available, skipping Supabase deletion`);
       }
+      supabaseDeleted = true; // No Supabase to delete from, so consider it successful
     }
     
-    return true;
+    // Return true if at least one deletion succeeded (localStorage or Supabase)
+    // This handles cases where project exists only in one place
+    return localStorageDeleted || supabaseDeleted;
   }, []);
 
   const duplicate = useCallback((id: string): string | null => {

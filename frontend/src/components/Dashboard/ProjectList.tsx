@@ -7,7 +7,7 @@ interface ProjectListProps {
   projects: StoredProject[];
   onOpen: (id: string) => void;
   onDuplicate: (id: string) => void;
-  onDelete: (id: string) => void;
+  onDelete: (id: string) => Promise<void>;
   onRename: (id: string, newName: string) => void;
   onExport: (id: string) => void;
 }
@@ -38,11 +38,21 @@ export function ProjectList({
     setNewName('');
   };
 
-  const handleDelete = (project: StoredProject) => {
-    if (window.confirm(`Are you sure you want to delete "${project.name}"? This action cannot be undone.`)) {
-      onDelete(project.id);
-    }
+  const handleDelete = async (project: StoredProject, e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    
+    const confirmed = window.confirm(`Are you sure you want to delete "${project.name}"? This action cannot be undone.`);
     setMenuOpenId(null);
+    
+    if (confirmed) {
+      try {
+        await onDelete(project.id);
+      } catch (error) {
+        console.error('Error deleting project:', error);
+        alert('Failed to delete project. Please try again.');
+      }
+    }
   };
 
   return (
@@ -139,10 +149,7 @@ export function ProjectList({
                   </button>
                   <div className="border-t border-white/10" />
                   <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDelete(project);
-                    }}
+                    onClick={(e) => handleDelete(project, e)}
                     className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-red-400/10 flex items-center gap-2 transition-colors"
                   >
                     <FaTrash className="text-xs" />

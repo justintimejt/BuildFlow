@@ -1,14 +1,19 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabaseClient, isSupabaseAvailable } from "../lib/supabaseClient";
 import { useProjectContext } from "../contexts/ProjectContext";
+
+export type SaveStatus = "saved" | "saving" | "error" | "idle";
 
 export function useSupabaseDiagramSync(projectId: string | null) {
   const { nodes, edges, getProject } = useProjectContext();
   const lastPayloadRef = useRef<string | null>(null);
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
     // Skip sync if Supabase is not available or no project ID
     if (!projectId || !isSupabaseAvailable() || !supabaseClient) {
+      setSaveStatus("idle");
       return;
     }
 
@@ -19,7 +24,13 @@ export function useSupabaseDiagramSync(projectId: string | null) {
       try {
         const project = getProject();
         const payload = JSON.stringify(project);
-        if (payload === lastPayloadRef.current) return;
+        if (payload === lastPayloadRef.current) {
+          setSaveStatus("saved");
+          return;
+        }
+        
+        setSaveStatus("saving");
+        setSaveError(null);
         lastPayloadRef.current = payload;
 
         // Get the current project data from database to check for name
@@ -59,12 +70,19 @@ export function useSupabaseDiagramSync(projectId: string | null) {
             updated_at: new Date().toISOString(),
           })
           .eq("id", projectId);
+        
+        setSaveStatus("saved");
+        setSaveError(null);
       } catch (error) {
         console.error("Failed to sync to Supabase:", error);
+        setSaveStatus("error");
+        setSaveError(error instanceof Error ? error.message : "Failed to save");
       }
     }, 400);
 
     return () => clearTimeout(timeout);
   }, [nodes, edges, getProject, projectId]);
+
+  return { saveStatus, saveError };
 }
 

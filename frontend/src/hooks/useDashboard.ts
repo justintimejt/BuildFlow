@@ -60,15 +60,35 @@ export const useDashboard = () => {
               });
               
               // Merge with localStorage projects (Supabase takes precedence)
-              // Create a map of Supabase projects by ID
-              const supabaseMap = new Map(convertedProjects.map(p => [p.supabaseId || p.id, p]));
+              // Create a map of Supabase projects by ID (using both id and supabaseId as keys)
+              const supabaseMap = new Map<string, StoredProject>();
+              convertedProjects.forEach(p => {
+                supabaseMap.set(p.id, p);
+                if (p.supabaseId) {
+                  supabaseMap.set(p.supabaseId, p);
+                }
+              });
+              
+              // Create a set of all Supabase IDs that exist
+              const existingSupabaseIds = new Set(convertedProjects.map(p => p.id));
               
               // Add localStorage projects that aren't in Supabase
               localProjects.forEach(localProject => {
                 const supabaseId = localProject.supabaseId;
-                if (!supabaseId || !supabaseMap.has(supabaseId)) {
-                  // This is a local-only project, include it
+                // Only include if:
+                // 1. It has no supabaseId (local-only project), OR
+                // 2. The supabaseId exists in Supabase (not deleted)
+                if (!supabaseId) {
+                  // Local-only project, include it
                   convertedProjects.push(localProject);
+                } else if (existingSupabaseIds.has(supabaseId)) {
+                  // Supabase project exists, but we already have it from Supabase query
+                  // Don't add the localStorage version (Supabase is source of truth)
+                  // This handles the case where localStorage has stale data
+                } else {
+                  // supabaseId exists in localStorage but not in Supabase
+                  // This means the Supabase project was deleted, so don't include it
+                  console.log(`⚠️  Skipping localStorage project ${localProject.id} - Supabase project ${supabaseId} was deleted`);
                 }
               });
               

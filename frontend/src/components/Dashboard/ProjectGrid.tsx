@@ -4,7 +4,7 @@ import { ProjectCard } from './ProjectCard';
 interface ProjectGridProps {
   projects: StoredProject[];
   onOpen: (id: string) => void;
-  onDelete: (id: string) => void;
+  onDelete: (id: string) => Promise<void>;
   onRename: (id: string, newName: string) => void;
   onExport: (id: string) => void;
 }

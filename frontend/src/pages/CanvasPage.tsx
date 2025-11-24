@@ -60,8 +60,26 @@ function CanvasContent() {
   useEffect(() => {
     // Only load if we have a valid project ID and haven't loaded yet
     if (id && id !== 'new' && !hasLoaded) {
-      // Always try localStorage first since that's where dashboard saves projects
-      const project = loadProjectFromStorage(id);
+      // Check if ID is a UUID (Supabase ID format)
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+      
+      // Try localStorage first - check both by ID and by supabaseId
+      let project = loadProjectFromStorage(id);
+      let storedProject = null;
+      
+      if (!project && isUUID) {
+        // If not found by ID and it's a UUID, check if any localStorage project has this as supabaseId
+        const projects = getStoredProjects();
+        storedProject = projects.find(p => p.supabaseId === id);
+        if (storedProject) {
+          project = loadProjectFromStorage(storedProject.id);
+        }
+      } else {
+        // Get the stored project metadata
+        const projects = getStoredProjects();
+        storedProject = projects.find(p => p.id === id);
+      }
+      
       if (project) {
         // Ensure project has nodes and edges arrays
         const projectToLoad = {
@@ -75,10 +93,11 @@ function CanvasContent() {
         loadProject(projectToLoad);
         
         // Get the Supabase ID if available
-        const projects = getStoredProjects();
-        const storedProject = projects.find(p => p.id === id);
         if (storedProject?.supabaseId) {
           setSupabaseProjectId(storedProject.supabaseId);
+        } else if (isUUID) {
+          // If the ID itself is a UUID, use it as the Supabase ID
+          setSupabaseProjectId(id);
         }
         
         // Mark as loaded to prevent duplicate loads
@@ -88,6 +107,12 @@ function CanvasContent() {
         // Project not found in localStorage
         console.log(`⚠️ Project ${id} not found in localStorage`);
         setIsLoadingFromStorage(false);
+        
+        // If it's a UUID, it might be a Supabase-only project
+        if (isUUID) {
+          setSupabaseProjectId(id);
+        }
+        
         // If Supabase is available, let useLoadProjectFromSupabase try to load it
         // Otherwise, redirect to dashboard
         if (!isSupabaseAvailable()) {
@@ -243,7 +268,7 @@ function CanvasContent() {
   // Sync diagram to Supabase (only if Supabase is configured and project has been loaded)
   // Use supabaseProjectId if available, otherwise use the id if it's a UUID
   // Only sync if we've loaded the project (to prevent syncing empty state)
-  useSupabaseDiagramSync(
+  const { saveStatus, saveError } = useSupabaseDiagramSync(
     (hasLoaded && !isLoadingFromStorage) ? 
       (supabaseProjectId || (id && id !== 'new' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id) ? id : null)) :
       null
@@ -274,7 +299,11 @@ function CanvasContent() {
         </div>
       </div>
 
-      <Toolbar projectId={id && id !== 'new' ? id : projectId} />
+      <Toolbar 
+        projectId={id && id !== 'new' ? id : projectId} 
+        saveStatus={saveStatus}
+        saveError={saveError}
+      />
       <div className="flex-1 flex overflow-hidden relative z-10">
         <div className={`${leftSidebarCollapsed ? 'w-0' : 'w-64'} flex-shrink-0 transition-all duration-300 ease-in-out ${leftSidebarCollapsed ? 'overflow-visible' : 'overflow-hidden'}`}>
           <ComponentLibrary 
