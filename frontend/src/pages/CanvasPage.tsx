@@ -8,7 +8,6 @@ import { InspectorPanel } from '../components/SidebarRight';
 import { Toolbar } from '../components/Toolbar';
 import { ChatBar } from '../components/Chat';
 import { useProjectId } from '../hooks/useProjectId';
-import { useSupabaseDiagramSync } from '../hooks/useSupabaseDiagramSync';
 import { useLoadProjectFromSupabase } from '../hooks/useLoadProjectFromSupabase';
 import { isSupabaseAvailable, supabaseClient } from '../lib/supabaseClient';
 import { loadProjectFromStorage, getStoredProjects, updateStoredProjectSupabaseId } from '../utils/storage';
@@ -265,14 +264,6 @@ function CanvasContent() {
       null
   );
 
-  // Sync diagram to Supabase (only if Supabase is configured and project has been loaded)
-  // Use supabaseProjectId if available, otherwise use the id if it's a UUID
-  // Only sync if we've loaded the project (to prevent syncing empty state)
-  const { saveStatus, saveError } = useSupabaseDiagramSync(
-    (hasLoaded && !isLoadingFromStorage) ? 
-      (supabaseProjectId || (id && id !== 'new' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id) ? id : null)) :
-      null
-  );
 
   // Show loading only if Supabase is configured and still loading
   const shouldShowLoading = isSupabaseAvailable() && projectIdLoading && id && id !== 'new';
@@ -301,8 +292,6 @@ function CanvasContent() {
 
       <Toolbar 
         projectId={id && id !== 'new' ? id : projectId} 
-        saveStatus={saveStatus}
-        saveError={saveError}
       />
       <div className="flex-1 flex overflow-hidden relative z-10">
         <div className={`${leftSidebarCollapsed ? 'w-0' : 'w-64'} flex-shrink-0 transition-all duration-300 ease-in-out ${leftSidebarCollapsed ? 'overflow-visible' : 'overflow-hidden'}`}>

@@ -4,6 +4,7 @@ supabase==2.24.0
 python-dotenv==1.0.1
 google-generativeai==0.8.3
 importlib-metadata>=6.0.0
+psycopg2-binary==2.9.9
 
 # Note: Frontend dependencies are managed in frontend/package.json
 # Recent frontend dependencies added (see frontend/package.json):

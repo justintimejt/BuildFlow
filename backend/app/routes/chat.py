@@ -801,9 +801,15 @@ IMPORTANT:
         try:
             # Validate that the project exists in Supabase before saving messages
             # This ensures we're using the correct project_id
-            project_check = supabase.table("projects").select("id").eq("id", req.projectId).single().execute()
+            try:
+                project_check = supabase.table("projects").select("id").eq("id", req.projectId).single().execute()
+            except APIError as api_err:
+                error_dict = api_err.args[0] if api_err.args and isinstance(api_err.args[0], dict) else {}
+                error_msg = error_dict.get('message', str(api_err))
+                print(f"❌ Error checking project existence: {error_msg}")
+                project_check = None
             
-            if not project_check.data or not project_check.data.get("id"):
+            if not project_check or not project_check.data or not project_check.data.get("id"):
                 print(f"⚠️  Warning: Project {req.projectId} not found in Supabase. Skipping chat message save.")
                 # Don't fail the request, but log the issue
             else:
@@ -814,40 +820,73 @@ IMPORTANT:
                     print(f"⚠️  Warning: Project ID mismatch. Requested: {req.projectId}, Found: {validated_project_id}")
                     print(f"⚠️  Using validated project ID: {validated_project_id}")
                 
-                result = supabase.table("chat_messages").insert([
-                    {
-                        "project_id": validated_project_id,
-                        "role": "user",
-                        "content": req.message,
-                    },
-                    {
-                        "project_id": validated_project_id,
-                        "role": "assistant",
-                        "content": assistant_message,
-                    },
-                ]).execute()
-                
-                if result.data:
-                    print(f"✅ Successfully saved chat messages for project {validated_project_id}")
-                    # Verify both messages were saved with the same project_id
-                    if len(result.data) == 2:
-                        user_msg_project_id = result.data[0].get("project_id")
-                        assistant_msg_project_id = result.data[1].get("project_id")
-                        if user_msg_project_id != assistant_msg_project_id:
-                            print(f"❌ ERROR: Project ID mismatch in saved messages!")
-                            print(f"   User message project_id: {user_msg_project_id}")
-                            print(f"   Assistant message project_id: {assistant_msg_project_id}")
-                        elif user_msg_project_id != validated_project_id:
-                            print(f"❌ ERROR: Saved messages have wrong project_id!")
-                            print(f"   Expected: {validated_project_id}")
-                            print(f"   Got: {user_msg_project_id}")
-                else:
-                    print(f"⚠️  Chat messages insert returned no data for project {validated_project_id}")
+                try:
+                    result = supabase.table("chat_messages").insert([
+                        {
+                            "project_id": validated_project_id,
+                            "role": "user",
+                            "content": req.message,
+                        },
+                        {
+                            "project_id": validated_project_id,
+                            "role": "assistant",
+                            "content": assistant_message,
+                        },
+                    ]).execute()
+                    
+                    # Check for errors explicitly (CRITICAL FIX)
+                    if hasattr(result, 'error') and result.error:
+                        error_obj = result.error
+                        error_code = getattr(error_obj, 'code', 'N/A')
+                        error_message = getattr(error_obj, 'message', str(error_obj))
+                        error_details = getattr(error_obj, 'details', 'N/A')
+                        print(f"❌ ERROR saving chat messages for project {validated_project_id}:")
+                        print(f"   Error code: {error_code}")
+                        print(f"   Error message: {error_message}")
+                        print(f"   Error details: {error_details}")
+                        print(f"   This may be due to RLS policies blocking the insert.")
+                        print(f"   Verify service role key is configured correctly in backend/.env")
+                    elif result.data:
+                        print(f"✅ Successfully saved {len(result.data)} chat messages for project {validated_project_id}")
+                        # Verify both messages were saved with the same project_id
+                        if len(result.data) == 2:
+                            user_msg_project_id = result.data[0].get("project_id")
+                            assistant_msg_project_id = result.data[1].get("project_id")
+                            if user_msg_project_id != assistant_msg_project_id:
+                                print(f"❌ ERROR: Project ID mismatch in saved messages!")
+                                print(f"   User message project_id: {user_msg_project_id}")
+                                print(f"   Assistant message project_id: {assistant_msg_project_id}")
+                            elif user_msg_project_id != validated_project_id:
+                                print(f"❌ ERROR: Saved messages have wrong project_id!")
+                                print(f"   Expected: {validated_project_id}")
+                                print(f"   Got: {user_msg_project_id}")
+                    else:
+                        print(f"⚠️  Chat messages insert returned no data for project {validated_project_id}")
+                        print(f"   No error was reported, but no data was returned.")
+                        print(f"   This may indicate a silent failure. Check Supabase logs.")
+                        
+                except APIError as api_err:
+                    # Handle Supabase API errors specifically
+                    error_dict = api_err.args[0] if api_err.args and isinstance(api_err.args[0], dict) else {}
+                    error_msg = error_dict.get('message', str(api_err))
+                    error_code = error_dict.get('code', 'N/A')
+                    error_hint = error_dict.get('hint', 'N/A')
+                    print(f"❌ Supabase API error saving chat messages for project {validated_project_id}:")
+                    print(f"   Error code: {error_code}")
+                    print(f"   Error message: {error_msg}")
+                    print(f"   Hint: {error_hint}")
+                    if "row-level security" in error_msg.lower() or "rls" in error_msg.lower():
+                        print(f"   ⚠️  RLS POLICY ISSUE DETECTED!")
+                        print(f"   The insert is being blocked by Row Level Security policies.")
+                        print(f"   Verify that SUPABASE_SERVICE_ROLE_KEY is the service role key (not anon key).")
+                        print(f"   Service role key should bypass RLS automatically.")
+                    print(f"   Full error details: {error_dict}")
+                    
         except Exception as e:
-            print(f"❌ Failed to save chat history for project {req.projectId}: {e}")
-            import traceback
-            print(traceback.format_exc())
-            # Don't fail the request if history save fails
+            print(f"❌ Unexpected error saving chat history for project {req.projectId}: {e}")
+            print(f"   Error type: {type(e).__name__}")
+            traceback.print_exc()
+            # Don't fail the request if history save fails, but log thoroughly
 
         # Return both the message and operations
         return {

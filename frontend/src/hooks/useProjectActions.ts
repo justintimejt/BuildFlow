@@ -53,9 +53,9 @@ export const useProjectActions = () => {
       // If it's not a UUID and not found, try deleting by the ID anyway
       const result = deleteProjectFromStorage(id);
       localStorageDeleted = result.success;
-      if (!result.success) {
+    if (!result.success) {
         console.log(`ℹ️  Project ${id} not found in localStorage`);
-      }
+    }
     } else {
       console.log(`ℹ️  Project ${id} not found in localStorage, may be Supabase-only`);
       localStorageDeleted = true; // Consider it "deleted" since it wasn't there

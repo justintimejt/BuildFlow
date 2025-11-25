@@ -15,15 +15,12 @@ import { FaSave, FaFolderOpen, FaDownload, FaFileExport, FaTrash, FaHome } from 
 import { SaveProjectModal } from './SaveProjectModal';
 import { Toast } from '../ui/Toast';
 
-import { SaveStatus } from '../../hooks/useSupabaseDiagramSync';
 
 interface ToolbarProps {
   projectId?: string | null;
-  saveStatus?: SaveStatus;
-  saveError?: string | null;
 }
 
-export function Toolbar({ projectId: toolbarProjectId, saveStatus = "idle", saveError = null }: ToolbarProps) {
+export function Toolbar({ projectId: toolbarProjectId }: ToolbarProps) {
   const navigate = useNavigate();
   const { getProject, loadProject, clearProject, undo, redo, canUndo, canRedo } = useProjectContext();
   const { reactFlowInstance } = useReactFlowContext();
@@ -350,34 +347,16 @@ export function Toolbar({ projectId: toolbarProjectId, saveStatus = "idle", save
       <div className="w-px h-6 bg-white/10" />
       
       <div className="flex items-center gap-2">
-        {/* Save Status Indicator */}
-        {isSupabaseAvailable() && toolbarProjectId && (
-          <div 
-            className={`px-2 py-1 text-xs font-light tracking-tight rounded ${
-              saveStatus === "saving" 
-                ? "text-yellow-400 bg-yellow-400/10" 
-                : saveStatus === "error"
-                ? "text-red-400 bg-red-400/10"
-                : saveStatus === "saved"
-                ? "text-green-400 bg-green-400/10"
-                : "text-white/50 bg-white/5"
-            }`}
-            title={saveError || (saveStatus === "saving" ? "Saving..." : saveStatus === "saved" ? "All changes saved" : "Idle")}
-          >
-            {saveStatus === "saving" ? "Saving..." : saveStatus === "error" ? "Error" : saveStatus === "saved" ? "Saved" : "Idle"}
-          </div>
-        )}
-        
-        {/* Manual Save Button (for naming/renaming) */}
-        <button
+        {/* Manual Save Button */}
+      <button
           ref={saveButtonRef}
           onClick={handleSaveClick}
           className="flex items-center gap-2 px-3 py-1.5 text-sm font-light tracking-tight text-white bg-white/10 border border-white/20 rounded-md hover:bg-white/20 transition-all duration-200"
           title="Save project (rename or save to localStorage)"
-        >
-          <FaSave />
-          Save
-        </button>
+      >
+        <FaSave />
+        Save
+      </button>
       </div>
 
       <SaveProjectModal

@@ -121,8 +121,8 @@ export function DashboardPage() {
   const handleDelete = async (id: string): Promise<void> => {
     try {
       console.log(`🗑️  Starting delete operation for project: ${id}`);
-      const success = await deleteProject(id);
-      if (success) {
+    const success = await deleteProject(id);
+    if (success) {
         console.log(`✅ Delete operation completed, refreshing projects...`);
         // Add a delay to ensure both localStorage and Supabase are updated before refreshing
         // Also give Supabase time to propagate the deletion
@@ -224,12 +224,12 @@ export function DashboardPage() {
               <div className="relative flex items-center">
                 {/* Search Input - expands from right to left */}
                 <div className={`relative transition-all duration-300 ease-in-out overflow-hidden ${isSearchExpanded ? 'w-[300px] opacity-100' : 'w-0 opacity-0'}`}>
-                  <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/70 z-10" />
-                  <Input
-                    type="text"
-                    placeholder="Search projects..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/70 z-10" />
+                <Input
+                  type="text"
+                  placeholder="Search projects..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                     onBlur={() => {
                       if (!searchQuery) {
                         setIsSearchExpanded(false);
@@ -237,7 +237,7 @@ export function DashboardPage() {
                     }}
                     className="pl-10 pr-10 bg-white/5 border-white/10 text-white placeholder:text-white/50 focus:border-white/20"
                     autoFocus={isSearchExpanded}
-                  />
+                />
                   <button
                     onClick={() => {
                       setSearchQuery('');
